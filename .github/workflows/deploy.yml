@@ -1,0 +1,60 @@
+name: Delivery and Deploy to Production
+
+on:
+  push:
+    branches: [ 'main' ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Record start time
+        id: start-time
+        run: echo "start_time=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: delivery
+        uses: burnett01/rsync-deployments@7.0.0
+        with:
+          switches: -apruz
+          remote_path: ${{ secrets.DEPLOY_FOLDER }}
+          remote_host: ${{ secrets.SSH_DEPLOY_HOST }}
+          remote_user: ${{ secrets.SSH_DEPLOY_USER }}
+          remote_key: ${{ secrets.SSH_DEPLOY_KEY }}
+          remote_port: ${{ secrets.SSH_DEPLOY_PORT }}
+
+      - name: deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_DEPLOY_HOST }}
+          username: ${{ secrets.SSH_DEPLOY_USER }}
+          key: ${{ secrets.SSH_DEPLOY_KEY }}
+          port: ${{ secrets.SSH_DEPLOY_PORT }}
+          script: |
+            cd ${{ secrets.COMPOSE_FOLDER }}
+            docker compose up nginx -d --build
+
+      - name: Calculate duration
+        id: duration
+        run: |
+          end_time=$(date +%s)
+          start_time=${{ steps.start-time.outputs.start_time }}
+          duration=$((end_time - start_time))
+          minutes=$((duration / 60))
+          seconds=$((duration % 60))
+          echo "minutes=$minutes" >> $GITHUB_OUTPUT
+          echo "seconds=$seconds" >> $GITHUB_OUTPUT

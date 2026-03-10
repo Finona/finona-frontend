@@ -1,7 +1,7 @@
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Outlet, Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { Header } from '@/components/layout/Header';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Outlet, Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const { user, loading } = useAuth();

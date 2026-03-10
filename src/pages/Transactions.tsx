@@ -1,9 +1,19 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Filter, Plus, Download, ArrowUpRight, ArrowDownRight, Edit, Trash2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Search,
+  Filter,
+  Plus,
+  Download,
+  ArrowUpRight,
+  ArrowDownRight,
+  Edit,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -11,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -20,14 +30,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,20 +47,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
-import { transactionsService, accountsService, categoriesService } from "@/lib/api-services";
-import type { Transaction, Account, Category } from "@/lib/api-types";
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import {
+  transactionsService,
+  accountsService,
+  categoriesService,
+} from '@/lib/api-services';
+import type { Transaction, Account, Category } from '@/lib/api-types';
 
 const Transactions = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [deleteTransaction, setDeleteTransaction] = useState<any>(null);
@@ -61,17 +75,17 @@ const Transactions = () => {
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ["transactions"],
+    queryKey: ['transactions'],
     queryFn: () => transactionsService.getAll(),
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["accounts"],
+    queryKey: ['accounts'],
     queryFn: () => accountsService.getAll(),
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
+    queryKey: ['categories'],
     queryFn: () => categoriesService.getAll(),
   });
 
@@ -86,16 +100,16 @@ const Transactions = () => {
   const filteredTransactions = useMemo(() => {
     return transactionsWithData.filter((t) => {
       const matchesSearch =
-        searchQuery === "" ||
+        searchQuery === '' ||
         t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.counterparty?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.category?.name?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesType =
-        typeFilter === "all" || t.type.toLowerCase() === typeFilter;
+        typeFilter === 'all' || t.type.toLowerCase() === typeFilter;
 
       const matchesCategory =
-        categoryFilter === "all" || t.category_id === categoryFilter;
+        categoryFilter === 'all' || t.category_id === categoryFilter;
 
       return matchesSearch && matchesType && matchesCategory;
     });
@@ -110,18 +124,18 @@ const Transactions = () => {
   const createMutation = useMutation({
     mutationFn: (data: any) => transactionsService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setIsAddOpen(false);
       toast({
-        title: "Транзакция создана",
-        description: "Транзакция успешно добавлена",
+        title: 'Транзакция создана',
+        description: 'Транзакция успешно добавлена',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
@@ -130,16 +144,16 @@ const Transactions = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: any) => transactionsService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       setEditingTransaction(null);
       toast({
-        title: "Транзакция обновлена",
+        title: 'Транзакция обновлена',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
@@ -148,17 +162,17 @@ const Transactions = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => transactionsService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setDeleteTransaction(null);
       toast({
-        title: "Транзакция удалена",
+        title: 'Транзакция удалена',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
@@ -168,49 +182,53 @@ const Transactions = () => {
   const handleExport = () => {
     if (!filteredTransactions.length) {
       toast({
-        variant: "destructive",
-        title: "Нет данных",
-        description: "Нет транзакций для экспорта",
+        variant: 'destructive',
+        title: 'Нет данных',
+        description: 'Нет транзакций для экспорта',
       });
       return;
     }
 
     const csv = [
-      ["Дата", "Описание", "Категория", "Счёт", "Тип", "Сумма"].join(","),
+      ['Дата', 'Описание', 'Категория', 'Счёт', 'Тип', 'Сумма'].join(','),
       ...filteredTransactions.map((t) =>
         [
-          format(new Date(t.date), "dd.MM.yyyy"),
-          t.description || t.counterparty || "-",
-          t.category?.name || "-",
-          t.account?.name || "-",
-          t.type.toUpperCase() === "INCOME" ? "Доход" : "Расход",
+          format(new Date(t.date), 'dd.MM.yyyy'),
+          t.description || t.counterparty || '-',
+          t.category?.name || '-',
+          t.account?.name || '-',
+          t.type.toUpperCase() === 'INCOME' ? 'Доход' : 'Расход',
           t.amount,
-        ].join(",")
+        ].join(',')
       ),
-    ].join("\n");
+    ].join('\n');
 
-    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
+    const blob = new Blob(['\ufeff' + csv], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `транзакции_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `транзакции_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
 
     toast({
-      title: "Экспорт завершён",
+      title: 'Экспорт завершён',
       description: `Экспортировано ${filteredTransactions.length} транзакций`,
     });
   };
 
   const TransactionForm = ({ transaction, onSubmit, onClose }: any) => {
     const [formData, setFormData] = useState({
-      account_id: transaction?.account_id || "",
-      category_id: transaction?.category_id || "",
-      amount: transaction?.amount || "",
-      type: transaction?.type?.toLowerCase() || "expense",
-      description: transaction?.description || "",
-      counterparty: transaction?.counterparty || "",
-      date: transaction?.date ? format(new Date(transaction.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      notes: transaction?.notes || "",
+      account_id: transaction?.account_id || '',
+      category_id: transaction?.category_id || '',
+      amount: transaction?.amount || '',
+      type: transaction?.type?.toLowerCase() || 'expense',
+      description: transaction?.description || '',
+      counterparty: transaction?.counterparty || '',
+      date: transaction?.date
+        ? format(new Date(transaction.date), 'yyyy-MM-dd')
+        : format(new Date(), 'yyyy-MM-dd'),
+      notes: transaction?.notes || '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -218,9 +236,9 @@ const Transactions = () => {
 
       if (!formData.account_id || !formData.amount) {
         toast({
-          variant: "destructive",
-          title: "Ошибка",
-          description: "Заполните обязательные поля",
+          variant: 'destructive',
+          title: 'Ошибка',
+          description: 'Заполните обязательные поля',
         });
         return;
       }
@@ -239,7 +257,9 @@ const Transactions = () => {
             <Label htmlFor="account">Счёт *</Label>
             <Select
               value={formData.account_id}
-              onValueChange={(value) => setFormData({ ...formData, account_id: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, account_id: value })
+              }
             >
               <SelectTrigger id="account">
                 <SelectValue placeholder="Выберите счёт" />
@@ -258,7 +278,9 @@ const Transactions = () => {
             <Label htmlFor="type">Тип *</Label>
             <Select
               value={formData.type}
-              onValueChange={(value) => setFormData({ ...formData, type: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, type: value })
+              }
             >
               <SelectTrigger id="type">
                 <SelectValue />
@@ -281,7 +303,9 @@ const Transactions = () => {
               step="0.01"
               placeholder="0.00"
               value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, amount: e.target.value })
+              }
               required
             />
           </div>
@@ -292,7 +316,9 @@ const Transactions = () => {
               id="date"
               type="date"
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
               required
             />
           </div>
@@ -302,7 +328,9 @@ const Transactions = () => {
           <Label htmlFor="category">Категория</Label>
           <Select
             value={formData.category_id}
-            onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+            onValueChange={(value) =>
+              setFormData({ ...formData, category_id: value })
+            }
           >
             <SelectTrigger id="category">
               <SelectValue placeholder="Выберите категорию" />
@@ -325,7 +353,9 @@ const Transactions = () => {
             id="description"
             placeholder="Например: Покупка в магазине"
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
           />
         </div>
 
@@ -335,7 +365,9 @@ const Transactions = () => {
             id="counterparty"
             placeholder="Например: Перекрёсток"
             value={formData.counterparty}
-            onChange={(e) => setFormData({ ...formData, counterparty: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, counterparty: e.target.value })
+            }
           />
         </div>
 
@@ -345,7 +377,9 @@ const Transactions = () => {
             id="notes"
             placeholder="Дополнительные заметки"
             value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, notes: e.target.value })
+            }
           />
         </div>
 
@@ -353,8 +387,11 @@ const Transactions = () => {
           <Button type="button" variant="outline" onClick={onClose}>
             Отмена
           </Button>
-          <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-            {transaction ? "Сохранить" : "Создать"}
+          <Button
+            type="submit"
+            disabled={createMutation.isPending || updateMutation.isPending}
+          >
+            {transaction ? 'Сохранить' : 'Создать'}
           </Button>
         </DialogFooter>
       </form>
@@ -420,7 +457,13 @@ const Transactions = () => {
               className="pl-10"
             />
           </div>
-          <Select value={typeFilter} onValueChange={(value) => { setTypeFilter(value); setPage(0); }}>
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => {
+              setTypeFilter(value);
+              setPage(0);
+            }}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Тип" />
             </SelectTrigger>
@@ -431,7 +474,13 @@ const Transactions = () => {
               <SelectItem value="transfer">Переводы</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={categoryFilter} onValueChange={(value) => { setCategoryFilter(value); setPage(0); }}>
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => {
+              setCategoryFilter(value);
+              setPage(0);
+            }}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Категория" />
             </SelectTrigger>
@@ -444,14 +493,16 @@ const Transactions = () => {
               ))}
             </SelectContent>
           </Select>
-          {(typeFilter !== "all" || categoryFilter !== "all" || searchQuery) && (
+          {(typeFilter !== 'all' ||
+            categoryFilter !== 'all' ||
+            searchQuery) && (
             <Button
               variant="ghost"
               size="icon"
               onClick={() => {
-                setTypeFilter("all");
-                setCategoryFilter("all");
-                setSearchQuery("");
+                setTypeFilter('all');
+                setCategoryFilter('all');
+                setSearchQuery('');
               }}
             >
               <X className="h-4 w-4" />
@@ -477,18 +528,20 @@ const Transactions = () => {
                   {paginatedTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="font-medium whitespace-nowrap">
-                        {format(new Date(transaction.date), "dd MMM", { locale: ru })}
+                        {format(new Date(transaction.date), 'dd MMM', {
+                          locale: ru,
+                        })}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div
                             className={`rounded-lg p-2 ${
-                              transaction.type.toUpperCase() === "INCOME"
-                                ? "bg-success/10"
-                                : "bg-muted"
+                              transaction.type.toUpperCase() === 'INCOME'
+                                ? 'bg-success/10'
+                                : 'bg-muted'
                             }`}
                           >
-                            {transaction.type.toUpperCase() === "INCOME" ? (
+                            {transaction.type.toUpperCase() === 'INCOME' ? (
                               <ArrowUpRight className="h-4 w-4 text-success" />
                             ) : (
                               <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
@@ -496,7 +549,9 @@ const Transactions = () => {
                           </div>
                           <div>
                             <p className="font-medium">
-                              {transaction.description || transaction.counterparty || "Без описания"}
+                              {transaction.description ||
+                                transaction.counterparty ||
+                                'Без описания'}
                             </p>
                             {transaction.notes && (
                               <p className="text-xs text-muted-foreground">
@@ -508,21 +563,23 @@ const Transactions = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {transaction.category?.name || "Без категории"}
+                          {transaction.category?.name || 'Без категории'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {transaction.account?.name || "-"}
+                        {transaction.account?.name || '-'}
                       </TableCell>
                       <TableCell
                         className={`text-right font-semibold whitespace-nowrap ${
-                          transaction.type.toUpperCase() === "INCOME"
-                            ? "text-success"
-                            : "text-foreground"
+                          transaction.type.toUpperCase() === 'INCOME'
+                            ? 'text-success'
+                            : 'text-foreground'
                         }`}
                       >
-                        {transaction.type.toUpperCase() === "INCOME" ? "+" : "-"}₽
-                        {Number(transaction.amount).toLocaleString()}
+                        {transaction.type.toUpperCase() === 'INCOME'
+                          ? '+'
+                          : '-'}
+                        ₽{Number(transaction.amount).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -551,8 +608,8 @@ const Transactions = () => {
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
               <p>
                 Показано {page * pageSize + 1}-
-                {Math.min((page + 1) * pageSize, filteredTransactions.length)} из{" "}
-                {filteredTransactions.length}
+                {Math.min((page + 1) * pageSize, filteredTransactions.length)}{' '}
+                из {filteredTransactions.length}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -567,7 +624,9 @@ const Transactions = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(page + 1)}
-                  disabled={(page + 1) * pageSize >= filteredTransactions.length}
+                  disabled={
+                    (page + 1) * pageSize >= filteredTransactions.length
+                  }
                 >
                   Далее
                 </Button>
@@ -578,8 +637,8 @@ const Transactions = () => {
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">
               {transactions && transactions.length > 0
-                ? "Нет транзакций по заданным фильтрам"
-                : "У вас пока нет транзакций"}
+                ? 'Нет транзакций по заданным фильтрам'
+                : 'У вас пока нет транзакций'}
             </p>
             <Button onClick={() => setIsAddOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />

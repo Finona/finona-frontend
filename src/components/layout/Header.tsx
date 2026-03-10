@@ -1,12 +1,12 @@
-import { Bell, Settings, User, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { profilesService, notificationsService } from "@/lib/api-services";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { formatDistanceToNow } from "date-fns";
-import { ru } from "date-fns/locale";
+import { Bell, Settings, User, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { profilesService, notificationsService } from '@/lib/api-services';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Sheet,
   SheetContent,
@@ -22,9 +22,9 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -33,13 +33,13 @@ export const Header = () => {
   const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
-    queryKey: ["profile"],
+    queryKey: ['profile'],
     queryFn: () => profilesService.get(),
     enabled: !!user,
   });
 
   const { data: notifications = [] } = useQuery({
-    queryKey: ["notifications"],
+    queryKey: ['notifications'],
     queryFn: () => notificationsService.getAll(),
     enabled: !!user,
   });
@@ -48,8 +48,8 @@ export const Header = () => {
     mutationFn: (notificationId: string) =>
       notificationsService.markAsRead(notificationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      toast({ title: "Уведомление отмечено как прочитанное" });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast({ title: 'Уведомление отмечено как прочитанное' });
     },
   });
 
@@ -58,7 +58,7 @@ export const Header = () => {
   const handleSignOut = async () => {
     signOut();
     toast({
-      title: "Вы вышли из системы",
+      title: 'Вы вышли из системы',
     });
   };
 
@@ -79,7 +79,7 @@ export const Header = () => {
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </Button>
@@ -90,7 +90,7 @@ export const Header = () => {
                 <SheetDescription>
                   {unreadCount > 0
                     ? `У вас ${unreadCount} непрочитанных уведомлений`
-                    : "Все уведомления прочитаны"}
+                    : 'Все уведомления прочитаны'}
                 </SheetDescription>
               </SheetHeader>
               <ScrollArea className="h-[calc(100vh-120px)] mt-6">
@@ -105,26 +105,28 @@ export const Header = () => {
                         key={notification.id}
                         className={`p-4 rounded-lg border transition-colors ${
                           notification.is_read
-                            ? "bg-background border-border"
-                            : "bg-accent/5 border-accent/20"
+                            ? 'bg-background border-border'
+                            : 'bg-accent/5 border-accent/20'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h4 className="font-semibold text-sm">{notification.title}</h4>
+                          <h4 className="font-semibold text-sm">
+                            {notification.title}
+                          </h4>
                           <Badge
                             variant={
-                              notification.type === "WARNING"
-                                ? "destructive"
-                                : notification.type === "SUCCESS"
-                                ? "default"
-                                : "secondary"
+                              notification.type === 'WARNING'
+                                ? 'destructive'
+                                : notification.type === 'SUCCESS'
+                                  ? 'default'
+                                  : 'secondary'
                             }
                             className="text-xs"
                           >
-                            {notification.type === "WARNING" && "Важно"}
-                            {notification.type === "SUCCESS" && "Успех"}
-                            {notification.type === "INFO" && "Инфо"}
-                            {notification.type === "ERROR" && "Ошибка"}
+                            {notification.type === 'WARNING' && 'Важно'}
+                            {notification.type === 'SUCCESS' && 'Успех'}
+                            {notification.type === 'INFO' && 'Инфо'}
+                            {notification.type === 'ERROR' && 'Ошибка'}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
@@ -132,17 +134,22 @@ export const Header = () => {
                         </p>
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(notification.created_at), {
-                              addSuffix: true,
-                              locale: ru,
-                            })}
+                            {formatDistanceToNow(
+                              new Date(notification.created_at),
+                              {
+                                addSuffix: true,
+                                locale: ru,
+                              }
+                            )}
                           </span>
                           {!notification.is_read && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-6 text-xs"
-                              onClick={() => markAsReadMutation.mutate(notification.id)}
+                              onClick={() =>
+                                markAsReadMutation.mutate(notification.id)
+                              }
                               disabled={markAsReadMutation.isPending}
                             >
                               <Check className="h-3 w-3 mr-1" />
@@ -157,13 +164,15 @@ export const Header = () => {
               </ScrollArea>
             </SheetContent>
           </Sheet>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2">
                 <User className="h-5 w-5" />
                 <span className="hidden sm:inline-block">
-                  {profile?.full_name || user?.email?.split("@")[0] || "Пользователь"}
+                  {profile?.full_name ||
+                    user?.email?.split('@')[0] ||
+                    'Пользователь'}
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -171,13 +180,13 @@ export const Header = () => {
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">
-                    {profile?.full_name || "Пользователь"}
+                    {profile?.full_name || 'Пользователь'}
                   </p>
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
                 <Settings className="mr-2 h-4 w-4" />
                 Настройки
               </DropdownMenuItem>

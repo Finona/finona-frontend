@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Wallet,
@@ -11,12 +11,12 @@ import {
   Edit,
   Trash2,
   RefreshCw,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -24,7 +24,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -33,14 +33,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,12 +50,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { accountsService, transactionsService } from "@/lib/api-services";
-import type { Account, Transaction, AccountCreate, AccountUpdate } from "@/lib/api-types";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { ru } from "date-fns/locale";
+} from '@/components/ui/alert-dialog';
+import { accountsService, transactionsService } from '@/lib/api-services';
+import type {
+  Account,
+  Transaction,
+  AccountCreate,
+  AccountUpdate,
+} from '@/lib/api-types';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 const accountTypeIcons = {
   checking: Building2,
@@ -66,11 +71,11 @@ const accountTypeIcons = {
 };
 
 const accountTypeLabels = {
-  checking: "Расчётный",
-  savings: "Сберегательный",
-  credit: "Кредитный",
-  cash: "Наличные",
-  investment: "Инвестиционный",
+  checking: 'Расчётный',
+  savings: 'Сберегательный',
+  credit: 'Кредитный',
+  cash: 'Наличные',
+  investment: 'Инвестиционный',
 };
 
 const Accounts = () => {
@@ -81,15 +86,17 @@ const Accounts = () => {
   const queryClient = useQueryClient();
 
   const { data: accounts, isLoading } = useQuery({
-    queryKey: ["accounts"],
+    queryKey: ['accounts'],
     queryFn: () => accountsService.getAll(),
   });
 
   const { data: recentTransactions } = useQuery({
-    queryKey: ["recent-transactions"],
+    queryKey: ['recent-transactions'],
     queryFn: async () => {
       const transactions = await transactionsService.getAll();
-      return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+      return transactions
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 5);
     },
   });
 
@@ -98,11 +105,17 @@ const Accounts = () => {
     if (!accounts) return { total: 0, active: 0, lastSync: null };
 
     const activeAccounts = accounts.filter((a) => a.is_active);
-    const totalBalance = activeAccounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
+    const totalBalance = activeAccounts.reduce(
+      (sum, acc) => sum + Number(acc.balance),
+      0
+    );
     const lastSync = activeAccounts
       .filter((a) => a.last_synced_at)
-      .sort((a, b) => new Date(b.last_synced_at!).getTime() - new Date(a.last_synced_at!).getTime())[0]
-      ?.last_synced_at;
+      .sort(
+        (a, b) =>
+          new Date(b.last_synced_at!).getTime() -
+          new Date(a.last_synced_at!).getTime()
+      )[0]?.last_synced_at;
 
     return {
       total: totalBalance,
@@ -114,17 +127,17 @@ const Accounts = () => {
   const createMutation = useMutation({
     mutationFn: (data: AccountCreate) => accountsService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setIsAddOpen(false);
       toast({
-        title: "Счёт создан",
-        description: "Счёт успешно добавлен",
+        title: 'Счёт создан',
+        description: 'Счёт успешно добавлен',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
@@ -134,16 +147,16 @@ const Accounts = () => {
     mutationFn: ({ id, data }: { id: string; data: AccountUpdate }) =>
       accountsService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setEditingAccount(null);
       toast({
-        title: "Счёт обновлён",
+        title: 'Счёт обновлён',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
@@ -154,28 +167,36 @@ const Accounts = () => {
       await accountsService.delete(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setDeleteAccount(null);
       toast({
-        title: "Счёт удалён",
+        title: 'Счёт удалён',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
   });
 
-  const AccountForm = ({ account, onSubmit, onClose }: { account?: Account; onSubmit: (data: AccountCreate | AccountUpdate) => void; onClose: () => void }) => {
+  const AccountForm = ({
+    account,
+    onSubmit,
+    onClose,
+  }: {
+    account?: Account;
+    onSubmit: (data: AccountCreate | AccountUpdate) => void;
+    onClose: () => void;
+  }) => {
     const [formData, setFormData] = useState({
-      name: account?.name || "",
-      type: account?.type.toLowerCase() || "checking",
-      currency: account?.currency || "RUB",
-      balance: account?.balance || "0",
-      bank_name: account?.bank_name || "",
+      name: account?.name || '',
+      type: account?.type.toLowerCase() || 'checking',
+      currency: account?.currency || 'RUB',
+      balance: account?.balance || '0',
+      bank_name: account?.bank_name || '',
       is_active: account?.is_active ?? true,
     });
 
@@ -184,16 +205,21 @@ const Accounts = () => {
 
       if (!formData.name) {
         toast({
-          variant: "destructive",
-          title: "Ошибка",
-          description: "Укажите название счёта",
+          variant: 'destructive',
+          title: 'Ошибка',
+          description: 'Укажите название счёта',
         });
         return;
       }
 
       const submitData: any = {
         name: formData.name,
-        type: formData.type.toUpperCase() as "CHECKING" | "SAVINGS" | "CREDIT" | "CASH" | "INVESTMENT",
+        type: formData.type.toUpperCase() as
+          | 'CHECKING'
+          | 'SAVINGS'
+          | 'CREDIT'
+          | 'CASH'
+          | 'INVESTMENT',
         currency: formData.currency,
         bank_name: formData.bank_name,
         is_active: formData.is_active,
@@ -222,7 +248,9 @@ const Accounts = () => {
             <Label htmlFor="type">Тип счёта *</Label>
             <Select
               value={formData.type}
-              onValueChange={(value) => setFormData({ ...formData, type: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, type: value })
+              }
             >
               <SelectTrigger id="type">
                 <SelectValue />
@@ -241,7 +269,9 @@ const Accounts = () => {
             <Label htmlFor="currency">Валюта *</Label>
             <Select
               value={formData.currency}
-              onValueChange={(value) => setFormData({ ...formData, currency: value })}
+              onValueChange={(value) =>
+                setFormData({ ...formData, currency: value })
+              }
             >
               <SelectTrigger id="currency">
                 <SelectValue />
@@ -262,7 +292,9 @@ const Accounts = () => {
               step="0.01"
               placeholder="0.00"
               value={formData.balance}
-              onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, balance: e.target.value })
+              }
             />
           </div>
         )}
@@ -273,7 +305,9 @@ const Accounts = () => {
             id="bank_name"
             placeholder="Например: Т-Банк"
             value={formData.bank_name}
-            onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, bank_name: e.target.value })
+            }
           />
         </div>
 
@@ -282,7 +316,9 @@ const Accounts = () => {
             type="checkbox"
             id="is_active"
             checked={formData.is_active}
-            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            onChange={(e) =>
+              setFormData({ ...formData, is_active: e.target.checked })
+            }
             className="h-4 w-4"
           />
           <Label htmlFor="is_active" className="cursor-pointer">
@@ -298,7 +334,7 @@ const Accounts = () => {
             type="submit"
             disabled={createMutation.isPending || updateMutation.isPending}
           >
-            {account ? "Сохранить" : "Создать"}
+            {account ? 'Сохранить' : 'Создать'}
           </Button>
         </DialogFooter>
       </form>
@@ -391,10 +427,12 @@ const Accounts = () => {
               {stats.lastSync ? (
                 <>
                   <p className="text-3xl font-bold text-foreground">
-                    {format(new Date(stats.lastSync), "HH:mm")}
+                    {format(new Date(stats.lastSync), 'HH:mm')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(stats.lastSync), "dd MMMM yyyy", { locale: ru })}
+                    {format(new Date(stats.lastSync), 'dd MMMM yyyy', {
+                      locale: ru,
+                    })}
                   </p>
                 </>
               ) : (
@@ -409,10 +447,14 @@ const Accounts = () => {
         <div className="space-y-4">
           {activeAccounts.length > 0 ? (
             activeAccounts.map((account) => {
-              const typeKey = account.type.toLowerCase() as keyof typeof accountTypeIcons;
+              const typeKey =
+                account.type.toLowerCase() as keyof typeof accountTypeIcons;
               const Icon = accountTypeIcons[typeKey];
               return (
-                <Card key={account.id} className="transition-all hover:shadow-md">
+                <Card
+                  key={account.id}
+                  className="transition-all hover:shadow-md"
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start gap-4">
@@ -435,10 +477,10 @@ const Accounts = () => {
                           </div>
                           {account.last_synced_at && (
                             <p className="text-xs text-muted-foreground">
-                              Обновлено:{" "}
+                              Обновлено:{' '}
                               {format(
                                 new Date(account.last_synced_at),
-                                "dd MMM HH:mm",
+                                'dd MMM HH:mm',
                                 { locale: ru }
                               )}
                             </p>
@@ -508,12 +550,12 @@ const Accounts = () => {
                     <div className="flex items-center gap-3">
                       <div
                         className={`rounded-lg p-2 ${
-                          transaction.type === "income"
-                            ? "bg-success/10"
-                            : "bg-muted"
+                          transaction.type === 'income'
+                            ? 'bg-success/10'
+                            : 'bg-muted'
                         }`}
                       >
-                        {transaction.type === "income" ? (
+                        {transaction.type === 'income' ? (
                           <ArrowUpRight className="h-4 w-4 text-success" />
                         ) : (
                           <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
@@ -523,11 +565,11 @@ const Accounts = () => {
                         <p className="font-medium">
                           {transaction.description ||
                             transaction.counterparty ||
-                            "Без описания"}
+                            'Без описания'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {transaction.account?.name} •{" "}
-                          {format(new Date(transaction.date), "dd MMM", {
+                          {transaction.account?.name} •{' '}
+                          {format(new Date(transaction.date), 'dd MMM', {
                             locale: ru,
                           })}
                         </p>
@@ -535,12 +577,12 @@ const Accounts = () => {
                     </div>
                     <p
                       className={`font-semibold ${
-                        transaction.type === "income"
-                          ? "text-success"
-                          : "text-foreground"
+                        transaction.type === 'income'
+                          ? 'text-success'
+                          : 'text-foreground'
                       }`}
                     >
-                      {transaction.type === "income" ? "+" : "-"}₽
+                      {transaction.type === 'income' ? '+' : '-'}₽
                       {Number(transaction.amount).toLocaleString()}
                     </p>
                   </div>
@@ -563,9 +605,7 @@ const Accounts = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Редактировать счёт</DialogTitle>
-            <DialogDescription>
-              Внесите изменения в счёт
-            </DialogDescription>
+            <DialogDescription>Внесите изменения в счёт</DialogDescription>
           </DialogHeader>
           {editingAccount && (
             <AccountForm

@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReactNode } from 'react';
 
 interface ChartCardProps {
   title: string;

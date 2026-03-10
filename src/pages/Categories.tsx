@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Edit,
@@ -7,12 +7,12 @@ import {
   Tag,
   TrendingUp,
   TrendingDown,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -21,14 +21,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,11 +38,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
-import { categoriesService } from "@/lib/api-services";
-import type { Category, CategoryCreate, CategoryUpdate } from "@/lib/api-types";
+} from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { categoriesService } from '@/lib/api-services';
+import type { Category, CategoryCreate, CategoryUpdate } from '@/lib/api-types';
 
 const Categories = () => {
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -53,7 +53,7 @@ const Categories = () => {
   const queryClient = useQueryClient();
 
   const { data: categories, isLoading } = useQuery({
-    queryKey: ["categories"],
+    queryKey: ['categories'],
     queryFn: () => categoriesService.getAll(),
   });
 
@@ -61,11 +61,11 @@ const Categories = () => {
     if (!categories) return { totalIncome: 0, totalExpenses: 0 };
 
     const totalIncome = categories
-      .filter((c) => c.type.toUpperCase() === "INCOME")
+      .filter((c) => c.type.toUpperCase() === 'INCOME')
       .reduce((sum, cat) => sum + Number(cat.total_amount || 0), 0);
 
     const totalExpenses = categories
-      .filter((c) => c.type.toUpperCase() === "EXPENSE")
+      .filter((c) => c.type.toUpperCase() === 'EXPENSE')
       .reduce((sum, cat) => sum + Number(cat.total_amount || 0), 0);
 
     return { totalIncome, totalExpenses };
@@ -74,16 +74,16 @@ const Categories = () => {
   const createCategoryMutation = useMutation({
     mutationFn: (data: CategoryCreate) => categoriesService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       setIsAddCategoryOpen(false);
       toast({
-        title: "Категория создана",
+        title: 'Категория создана',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
@@ -93,16 +93,16 @@ const Categories = () => {
     mutationFn: ({ id, data }: { id: string; data: CategoryUpdate }) =>
       categoriesService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       setEditingCategory(null);
       toast({
-        title: "Категория обновлена",
+        title: 'Категория обновлена',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
@@ -111,32 +111,31 @@ const Categories = () => {
   const deleteCategoryMutation = useMutation({
     mutationFn: (id: string) => categoriesService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       setDeleteCategory(null);
       toast({
-        title: "Категория удалена",
+        title: 'Категория удалена',
       });
     },
     onError: (error: any) => {
       toast({
-        variant: "destructive",
-        title: "Ошибка",
+        variant: 'destructive',
+        title: 'Ошибка',
         description: error.message,
       });
     },
   });
 
-
   const CategoryForm = ({ category, onSubmit, onClose }: any) => {
     const categoryType = category?.type
-      ? (category.type.toUpperCase() as "EXPENSE" | "INCOME")
-      : "EXPENSE";
+      ? (category.type.toUpperCase() as 'EXPENSE' | 'INCOME')
+      : 'EXPENSE';
 
     const [formData, setFormData] = useState({
-      name: category?.name || "",
+      name: category?.name || '',
       type: categoryType,
-      icon: category?.icon || "",
-      color: category?.color || "",
+      icon: category?.icon || '',
+      color: category?.color || '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -144,9 +143,9 @@ const Categories = () => {
 
       if (!formData.name.trim()) {
         toast({
-          variant: "destructive",
-          title: "Ошибка",
-          description: "Укажите название категории",
+          variant: 'destructive',
+          title: 'Ошибка',
+          description: 'Укажите название категории',
         });
         return;
       }
@@ -190,7 +189,9 @@ const Categories = () => {
               id="icon"
               placeholder="🏪"
               value={formData.icon}
-              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, icon: e.target.value })
+              }
               maxLength={2}
             />
           </div>
@@ -202,7 +203,9 @@ const Categories = () => {
               type="text"
               placeholder="#3b82f6"
               value={formData.color}
-              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, color: e.target.value })
+              }
             />
           </div>
         </div>
@@ -214,16 +217,16 @@ const Categories = () => {
           <Button
             type="submit"
             disabled={
-              createCategoryMutation.isPending || updateCategoryMutation.isPending
+              createCategoryMutation.isPending ||
+              updateCategoryMutation.isPending
             }
           >
-            {category ? "Сохранить" : "Создать"}
+            {category ? 'Сохранить' : 'Создать'}
           </Button>
         </DialogFooter>
       </form>
     );
   };
-
 
   if (isLoading) {
     return (
@@ -353,15 +356,19 @@ const Categories = () => {
                       <div className="flex items-center gap-4">
                         <Badge
                           variant={
-                            category.type.toUpperCase() === "INCOME" ? "default" : "secondary"
+                            category.type.toUpperCase() === 'INCOME'
+                              ? 'default'
+                              : 'secondary'
                           }
                           className={
-                            category.type.toUpperCase() === "INCOME"
-                              ? "bg-success"
-                              : "bg-destructive"
+                            category.type.toUpperCase() === 'INCOME'
+                              ? 'bg-success'
+                              : 'bg-destructive'
                           }
                         >
-                          {category.type.toUpperCase() === "INCOME" ? "Доход" : "Расход"}
+                          {category.type.toUpperCase() === 'INCOME'
+                            ? 'Доход'
+                            : 'Расход'}
                         </Badge>
                         <p className="text-lg font-bold text-foreground">
                           ₽ {Number(category.total_amount).toLocaleString()}
@@ -412,8 +419,10 @@ const Categories = () => {
               {categories && categories.length > 0 ? (
                 <div className="space-y-4">
                   {categories
-                    .filter((cat) => cat.type.toUpperCase() === "EXPENSE")
-                    .sort((a, b) => Number(b.total_amount) - Number(a.total_amount))
+                    .filter((cat) => cat.type.toUpperCase() === 'EXPENSE')
+                    .sort(
+                      (a, b) => Number(b.total_amount) - Number(a.total_amount)
+                    )
                     .slice(0, 5)
                     .map((category) => (
                       <div key={category.id} className="space-y-2">
@@ -431,7 +440,9 @@ const Categories = () => {
                         <Progress
                           value={
                             stats.totalExpenses > 0
-                              ? (Number(category.total_amount) / stats.totalExpenses) * 100
+                              ? (Number(category.total_amount) /
+                                  stats.totalExpenses) *
+                                100
                               : 0
                           }
                           className="h-2"
@@ -446,7 +457,6 @@ const Categories = () => {
               )}
             </CardContent>
           </Card>
-
         </div>
       </div>
 
@@ -472,7 +482,6 @@ const Categories = () => {
         </DialogContent>
       </Dialog>
 
-
       {/* Диалог удаления категории */}
       <AlertDialog
         open={!!deleteCategory}
@@ -497,8 +506,6 @@ const Categories = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-
     </div>
   );
 };

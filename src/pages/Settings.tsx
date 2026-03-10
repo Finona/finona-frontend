@@ -1,9 +1,15 @@
-import { Save, User, Bell, Lock, CreditCard, Database } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Save, User, Bell, Lock, CreditCard, Database } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,15 +19,22 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { profilesService, accountsService, transactionsService, categoriesService, budgetsService, authService } from "@/lib/api-services";
-import { useAuth } from "@/hooks/useAuth";
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+} from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  profilesService,
+  accountsService,
+  transactionsService,
+  categoriesService,
+  budgetsService,
+  authService,
+} from '@/lib/api-services';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -30,11 +43,11 @@ const Settings = () => {
   const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const [fullName, setFullName] = useState("");
+  const [fullName, setFullName] = useState('');
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
@@ -43,20 +56,20 @@ const Settings = () => {
   const [weeklyReports, setWeeklyReports] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ["profile"],
+    queryKey: ['profile'],
     queryFn: () => profilesService.get(),
     enabled: !!user,
   });
 
   const { data: userSettings, isLoading: settingsLoading } = useQuery({
-    queryKey: ["user-settings"],
+    queryKey: ['user-settings'],
     queryFn: () => profilesService.getSettings(),
     enabled: !!user,
   });
 
   useEffect(() => {
     if (profile) {
-      setFullName(profile.full_name || "");
+      setFullName(profile.full_name || '');
     }
   }, [profile]);
 
@@ -77,14 +90,14 @@ const Settings = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      toast({ title: "Профиль обновлен" });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast({ title: 'Профиль обновлен' });
     },
     onError: (error: any) => {
       toast({
-        title: "Ошибка",
+        title: 'Ошибка',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
@@ -100,14 +113,14 @@ const Settings = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-settings"] });
-      toast({ title: "Настройки сохранены" });
+      queryClient.invalidateQueries({ queryKey: ['user-settings'] });
+      toast({ title: 'Настройки сохранены' });
     },
     onError: (error: any) => {
       toast({
-        title: "Ошибка",
+        title: 'Ошибка',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
@@ -115,25 +128,25 @@ const Settings = () => {
   const changePasswordMutation = useMutation({
     mutationFn: async () => {
       if (newPassword !== confirmPassword) {
-        throw new Error("Пароли не совпадают");
+        throw new Error('Пароли не совпадают');
       }
       if (newPassword.length < 6) {
-        throw new Error("Пароль должен содержать минимум 6 символов");
+        throw new Error('Пароль должен содержать минимум 6 символов');
       }
 
       await authService.logout();
     },
     onSuccess: () => {
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      toast({ title: "Пароль изменен" });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast({ title: 'Пароль изменен' });
     },
     onError: (error: any) => {
       toast({
-        title: "Ошибка",
+        title: 'Ошибка',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     },
   });
@@ -157,19 +170,19 @@ const Settings = () => {
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
+        type: 'application/json',
       });
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `finance-data-export-${new Date().toISOString().split("T")[0]}.json`;
+      link.download = `finance-data-export-${new Date().toISOString().split('T')[0]}.json`;
       link.click();
 
-      toast({ title: "Данные экспортированы" });
+      toast({ title: 'Данные экспортированы' });
     } catch (error: any) {
       toast({
-        title: "Ошибка экспорта",
+        title: 'Ошибка экспорта',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   };
@@ -177,13 +190,13 @@ const Settings = () => {
   const handleDeleteAccount = async () => {
     try {
       await signOut();
-      toast({ title: "Аккаунт удален" });
-      navigate("/auth");
+      toast({ title: 'Аккаунт удален' });
+      navigate('/auth');
     } catch (error: any) {
       toast({
-        title: "Ошибка удаления",
+        title: 'Ошибка удаления',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
     }
   };
@@ -203,7 +216,9 @@ const Settings = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Настройки</h1>
-        <p className="text-muted-foreground">Управление профилем и настройками приложения</p>
+        <p className="text-muted-foreground">
+          Управление профилем и настройками приложения
+        </p>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
@@ -241,7 +256,7 @@ const Settings = () => {
                 <Input
                   id="email"
                   type="email"
-                  value={user?.email || ""}
+                  value={user?.email || ''}
                   disabled
                 />
                 <p className="text-xs text-muted-foreground">
@@ -254,7 +269,9 @@ const Settings = () => {
                 disabled={updateProfileMutation.isPending}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {updateProfileMutation.isPending ? "Сохранение..." : "Сохранить профиль"}
+                {updateProfileMutation.isPending
+                  ? 'Сохранение...'
+                  : 'Сохранить профиль'}
               </Button>
             </CardContent>
           </Card>
@@ -350,12 +367,14 @@ const Settings = () => {
                 />
               </div>
 
-              <Button 
+              <Button
                 onClick={() => updateSettingsMutation.mutate()}
                 disabled={updateSettingsMutation.isPending}
               >
                 <Save className="mr-2 h-4 w-4" />
-                {updateSettingsMutation.isPending ? "Сохранение..." : "Сохранить настройки"}
+                {updateSettingsMutation.isPending
+                  ? 'Сохранение...'
+                  : 'Сохранить настройки'}
               </Button>
             </CardContent>
           </Card>
@@ -385,7 +404,9 @@ const Settings = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm-password">Подтвердите новый пароль</Label>
+                <Label htmlFor="confirm-password">
+                  Подтвердите новый пароль
+                </Label>
                 <Input
                   id="confirm-password"
                   type="password"
@@ -396,9 +417,15 @@ const Settings = () => {
 
               <Button
                 onClick={() => changePasswordMutation.mutate()}
-                disabled={!newPassword || !confirmPassword || changePasswordMutation.isPending}
+                disabled={
+                  !newPassword ||
+                  !confirmPassword ||
+                  changePasswordMutation.isPending
+                }
               >
-                {changePasswordMutation.isPending ? "Изменение..." : "Изменить пароль"}
+                {changePasswordMutation.isPending
+                  ? 'Изменение...'
+                  : 'Изменить пароль'}
               </Button>
             </CardContent>
           </Card>
@@ -409,9 +436,7 @@ const Settings = () => {
                 <Database className="h-5 w-5" />
                 Управление данными
               </CardTitle>
-              <CardDescription>
-                Экспорт и удаление ваших данных
-              </CardDescription>
+              <CardDescription>Экспорт и удаление ваших данных</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -430,12 +455,14 @@ const Settings = () => {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-destructive">Удалить аккаунт</p>
+                  <p className="font-medium text-destructive">
+                    Удалить аккаунт
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Безвозвратное удаление аккаунта и всех данных
                   </p>
                 </div>
-                <Button 
+                <Button
                   variant="destructive"
                   onClick={() => setDeleteDialogOpen(true)}
                 >
@@ -485,9 +512,15 @@ const Settings = () => {
             <CardContent>
               <div className="space-y-3">
                 {[
-                  { name: "Telegram Bot", description: "Уведомления в Telegram" },
-                  { name: "Google Sheets", description: "Экспорт данных в таблицы" },
-                  { name: "1С:Бухгалтерия", description: "Синхронизация с 1С" },
+                  {
+                    name: 'Telegram Bot',
+                    description: 'Уведомления в Telegram',
+                  },
+                  {
+                    name: 'Google Sheets',
+                    description: 'Экспорт данных в таблицы',
+                  },
+                  { name: '1С:Бухгалтерия', description: 'Синхронизация с 1С' },
                 ].map((integration, i) => (
                   <div
                     key={i}
@@ -515,7 +548,8 @@ const Settings = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
             <AlertDialogDescription>
-              Это действие нельзя отменить. Все ваши данные будут удалены навсегда.
+              Это действие нельзя отменить. Все ваши данные будут удалены
+              навсегда.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

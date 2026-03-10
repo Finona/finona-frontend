@@ -1,21 +1,27 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { authService } from "@/lib/api-services";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService } from '@/lib/api-services';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Auth() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [region, setRegion] = useState("RU");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [region, setRegion] = useState('RU');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -35,19 +41,19 @@ export default function Auth() {
         region,
       });
 
-      localStorage.setItem("access_token", response.access_token);
-      localStorage.setItem("refresh_token", response.refresh_token);
+      localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('refresh_token', response.refresh_token);
 
       toast({
-        title: "Регистрация успешна!",
-        description: "Перенаправление...",
+        title: 'Регистрация успешна!',
+        description: 'Перенаправление...',
       });
 
-      navigate("/");
+      navigate('/');
     } catch (error: any) {
       toast({
-        variant: "destructive",
-        title: "Ошибка регистрации",
+        variant: 'destructive',
+        title: 'Ошибка регистрации',
         description: error.message,
       });
     } finally {
@@ -65,19 +71,19 @@ export default function Auth() {
         password,
       });
 
-      localStorage.setItem("access_token", response.access_token);
-      localStorage.setItem("refresh_token", response.refresh_token);
+      localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('refresh_token', response.refresh_token);
 
       toast({
-        title: "Вход выполнен!",
-        description: "Перенаправление...",
+        title: 'Вход выполнен!',
+        description: 'Перенаправление...',
       });
 
-      navigate("/");
+      navigate('/');
     } catch (error: any) {
       toast({
-        variant: "destructive",
-        title: "Ошибка входа",
+        variant: 'destructive',
+        title: 'Ошибка входа',
         description: error.message,
       });
     } finally {
@@ -91,7 +97,9 @@ export default function Auth() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-elegant">
-              <span className="text-3xl font-bold text-primary-foreground">₽</span>
+              <span className="text-3xl font-bold text-primary-foreground">
+                ₽
+              </span>
             </div>
           </div>
           <CardTitle className="text-2xl">Finona</CardTitle>
@@ -130,7 +138,7 @@ export default function Auth() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Вход..." : "Войти"}
+                  {loading ? 'Вход...' : 'Войти'}
                 </Button>
               </form>
             </TabsContent>
@@ -214,7 +222,7 @@ export default function Auth() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Регистрация..." : "Зарегистрироваться"}
+                  {loading ? 'Регистрация...' : 'Зарегистрироваться'}
                 </Button>
               </form>
             </TabsContent>

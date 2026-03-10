@@ -1,22 +1,30 @@
-import { Plus, Target, AlertTriangle, CheckCircle2, TrendingUp, Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import {
+  Plus,
+  Target,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,23 +34,29 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
-import { useState, useMemo } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
-import { ru } from "date-fns/locale";
-import { budgetsService, categoriesService } from "@/lib/api-services";
-import type { Budget, Category } from "@/lib/api-types";
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useMemo } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  addMonths,
+} from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { budgetsService, categoriesService } from '@/lib/api-services';
+import type { Budget, Category } from '@/lib/api-types';
 
 interface BudgetFormData {
   name: string;
   category_id: string;
   amount: string;
-  period: "MONTHLY" | "QUARTERLY" | "YEARLY";
+  period: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
   start_date: string;
   end_date: string;
   alert_threshold: string;
@@ -51,27 +65,31 @@ interface BudgetFormData {
 const BudgetForm = ({
   onSubmit,
   initialData,
-  onClose
+  onClose,
 }: {
   onSubmit: (data: BudgetFormData) => void;
   initialData?: Partial<BudgetFormData>;
   onClose: () => void;
 }) => {
   const [formData, setFormData] = useState<BudgetFormData>({
-    name: initialData?.name || "",
-    category_id: initialData?.category_id || "",
-    amount: initialData?.amount || "",
-    period: initialData?.period || "MONTHLY",
-    start_date: initialData?.start_date || format(startOfMonth(new Date()), "yyyy-MM-dd"),
-    end_date: initialData?.end_date || format(endOfMonth(new Date()), "yyyy-MM-dd"),
-    alert_threshold: initialData?.alert_threshold || "80",
+    name: initialData?.name || '',
+    category_id: initialData?.category_id || '',
+    amount: initialData?.amount || '',
+    period: initialData?.period || 'MONTHLY',
+    start_date:
+      initialData?.start_date || format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    end_date:
+      initialData?.end_date || format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+    alert_threshold: initialData?.alert_threshold || '80',
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
+    queryKey: ['categories'],
     queryFn: async () => {
       const allCategories = await categoriesService.getAll();
-      return allCategories.filter(cat => cat.type.toUpperCase() === "EXPENSE");
+      return allCategories.filter(
+        (cat) => cat.type.toUpperCase() === 'EXPENSE'
+      );
     },
   });
 
@@ -97,7 +115,9 @@ const BudgetForm = ({
         <Label htmlFor="category">Категория</Label>
         <Select
           value={formData.category_id}
-          onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+          onValueChange={(value) =>
+            setFormData({ ...formData, category_id: value })
+          }
         >
           <SelectTrigger>
             <SelectValue placeholder="Выберите категорию" />
@@ -128,7 +148,12 @@ const BudgetForm = ({
         <Label htmlFor="period">Период</Label>
         <Select
           value={formData.period}
-          onValueChange={(value) => setFormData({ ...formData, period: value as "MONTHLY" | "QUARTERLY" | "YEARLY" })}
+          onValueChange={(value) =>
+            setFormData({
+              ...formData,
+              period: value as 'MONTHLY' | 'QUARTERLY' | 'YEARLY',
+            })
+          }
         >
           <SelectTrigger>
             <SelectValue />
@@ -148,7 +173,9 @@ const BudgetForm = ({
             id="start_date"
             type="date"
             value={formData.start_date}
-            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, start_date: e.target.value })
+            }
             required
           />
         </div>
@@ -159,7 +186,9 @@ const BudgetForm = ({
             id="end_date"
             type="date"
             value={formData.end_date}
-            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, end_date: e.target.value })
+            }
             required
           />
         </div>
@@ -173,7 +202,9 @@ const BudgetForm = ({
           min="0"
           max="100"
           value={formData.alert_threshold}
-          onChange={(e) => setFormData({ ...formData, alert_threshold: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, alert_threshold: e.target.value })
+          }
         />
       </div>
 
@@ -181,9 +212,7 @@ const BudgetForm = ({
         <Button type="button" variant="outline" onClick={onClose}>
           Отмена
         </Button>
-        <Button type="submit">
-          {initialData ? "Обновить" : "Создать"}
-        </Button>
+        <Button type="submit">{initialData ? 'Обновить' : 'Создать'}</Button>
       </div>
     </form>
   );
@@ -199,41 +228,44 @@ const Budgets = () => {
   const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
 
   const currentPeriodStart = useMemo(() => {
-    const date = selectedPeriod >= 0
-      ? subMonths(new Date(), selectedPeriod)
-      : addMonths(new Date(), Math.abs(selectedPeriod));
+    const date =
+      selectedPeriod >= 0
+        ? subMonths(new Date(), selectedPeriod)
+        : addMonths(new Date(), Math.abs(selectedPeriod));
     return startOfMonth(date);
   }, [selectedPeriod]);
 
   const currentPeriodEnd = useMemo(() => {
-    const date = selectedPeriod >= 0
-      ? subMonths(new Date(), selectedPeriod)
-      : addMonths(new Date(), Math.abs(selectedPeriod));
+    const date =
+      selectedPeriod >= 0
+        ? subMonths(new Date(), selectedPeriod)
+        : addMonths(new Date(), Math.abs(selectedPeriod));
     return endOfMonth(date);
   }, [selectedPeriod]);
 
   const { data: budgets = [], isLoading: budgetsLoading } = useQuery({
-    queryKey: ["budgets", currentPeriodStart, currentPeriodEnd],
+    queryKey: ['budgets', currentPeriodStart, currentPeriodEnd],
     queryFn: async () => {
       const allBudgets = await budgetsService.getAll();
-      const periodStart = format(currentPeriodStart, "yyyy-MM-dd");
-      const periodEnd = format(currentPeriodEnd, "yyyy-MM-dd");
-      const filteredBudgets = allBudgets.filter(b =>
-        b.is_active &&
-        b.start_date <= periodEnd &&
-        b.end_date >= periodStart
+      const periodStart = format(currentPeriodStart, 'yyyy-MM-dd');
+      const periodEnd = format(currentPeriodEnd, 'yyyy-MM-dd');
+      const filteredBudgets = allBudgets.filter(
+        (b) =>
+          b.is_active && b.start_date <= periodEnd && b.end_date >= periodStart
       );
 
-      const categoryIds = [...new Set(filteredBudgets.map(b => b.category_id).filter(Boolean))];
+      const categoryIds = [
+        ...new Set(filteredBudgets.map((b) => b.category_id).filter(Boolean)),
+      ];
       if (categoryIds.length > 0) {
         const categories = await Promise.all(
-          categoryIds.map(id => categoriesService.getById(id as string))
+          categoryIds.map((id) => categoriesService.getById(id as string))
         );
-        const categoryMap = new Map(categories.map(cat => [cat.id, cat]));
+        const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
 
-        return filteredBudgets.map(b => ({
+        return filteredBudgets.map((b) => ({
           ...b,
-          category: b.category_id ? categoryMap.get(b.category_id) : undefined
+          category: b.category_id ? categoryMap.get(b.category_id) : undefined,
         }));
       }
 
@@ -243,15 +275,24 @@ const Budgets = () => {
   });
 
   const budgetsWithStatus = useMemo(() => {
-    return budgets.map(budget => ({
+    return budgets.map((budget) => ({
       ...budget,
-      status: Number(budget.spent) > Number(budget.amount) ? "exceeded" : "good"
+      status:
+        Number(budget.spent) > Number(budget.amount) ? 'exceeded' : 'good',
     }));
   }, [budgets]);
 
-  const totalBudget = budgetsWithStatus.reduce((sum, b) => sum + Number(b.amount), 0);
-  const totalSpent = budgetsWithStatus.reduce((sum, b) => sum + Number(b.spent), 0);
-  const budgetsExceeded = budgetsWithStatus.filter((b) => b.status === "exceeded").length;
+  const totalBudget = budgetsWithStatus.reduce(
+    (sum, b) => sum + Number(b.amount),
+    0
+  );
+  const totalSpent = budgetsWithStatus.reduce(
+    (sum, b) => sum + Number(b.spent),
+    0
+  );
+  const budgetsExceeded = budgetsWithStatus.filter(
+    (b) => b.status === 'exceeded'
+  ).length;
 
   const createBudgetMutation = useMutation({
     mutationFn: async (data: BudgetFormData) => {
@@ -267,12 +308,16 @@ const Budgets = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
-      toast({ title: "Бюджет создан" });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({ title: 'Бюджет создан' });
       setBudgetDialogOpen(false);
     },
     onError: (error: any) => {
-      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+      toast({
+        title: 'Ошибка',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -289,12 +334,16 @@ const Budgets = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
-      toast({ title: "Бюджет обновлен" });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({ title: 'Бюджет обновлен' });
       setEditingBudget(null);
     },
     onError: (error: any) => {
-      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+      toast({
+        title: 'Ошибка',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -303,12 +352,16 @@ const Budgets = () => {
       await budgetsService.delete(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
-      toast({ title: "Бюджет удален" });
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({ title: 'Бюджет удален' });
       setDeletingBudget(null);
     },
     onError: (error: any) => {
-      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+      toast({
+        title: 'Ошибка',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -328,10 +381,12 @@ const Budgets = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Бюджеты</h1>
-          <p className="text-muted-foreground">Планирование и контроль расходов</p>
+          <p className="text-muted-foreground">
+            Планирование и контроль расходов
+          </p>
         </div>
         <div className="flex gap-2">
-          <Select 
+          <Select
             value={selectedPeriod.toString()}
             onValueChange={(value) => setSelectedPeriod(Number(value))}
           >
@@ -340,13 +395,20 @@ const Budgets = () => {
             </SelectTrigger>
             <SelectContent>
               {Array.from({ length: 6 }, (_, i) => (
-                <SelectItem key={`future-${6 - i}`} value={(-(6 - i)).toString()}>
-                  {format(addMonths(new Date(), 6 - i), "LLLL yyyy", { locale: ru })}
+                <SelectItem
+                  key={`future-${6 - i}`}
+                  value={(-(6 - i)).toString()}
+                >
+                  {format(addMonths(new Date(), 6 - i), 'LLLL yyyy', {
+                    locale: ru,
+                  })}
                 </SelectItem>
               ))}
               {Array.from({ length: 12 }, (_, i) => (
                 <SelectItem key={`past-${i}`} value={i.toString()}>
-                  {format(subMonths(new Date(), i), "LLLL yyyy", { locale: ru })}
+                  {format(subMonths(new Date(), i), 'LLLL yyyy', {
+                    locale: ru,
+                  })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -459,8 +521,9 @@ const Budgets = () => {
                   </div>
                 ) : (
                   budgetsWithStatus.map((budget) => {
-                    const percentage = (budget.spent / Number(budget.amount)) * 100;
-                    const isExceeded = budget.status === "exceeded";
+                    const percentage =
+                      (budget.spent / Number(budget.amount)) * 100;
+                    const isExceeded = budget.status === 'exceeded';
 
                     return (
                       <div
@@ -470,23 +533,27 @@ const Budgets = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
                             <span className="text-2xl">
-                              {budget.category?.icon || "📊"}
+                              {budget.category?.icon || '📊'}
                             </span>
                             <div>
                               <p className="font-semibold text-foreground">
                                 {budget.name}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {budget.category?.name || "Без категории"}
+                                {budget.category?.name || 'Без категории'}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge
-                              variant={isExceeded ? "destructive" : "secondary"}
-                              className={isExceeded ? "" : "bg-success text-success-foreground"}
+                              variant={isExceeded ? 'destructive' : 'secondary'}
+                              className={
+                                isExceeded
+                                  ? ''
+                                  : 'bg-success text-success-foreground'
+                              }
                             >
-                              {isExceeded ? "Превышен" : "В пределах"}
+                              {isExceeded ? 'Превышен' : 'В пределах'}
                             </Badge>
                             <Button
                               variant="ghost"
@@ -510,12 +577,12 @@ const Budgets = () => {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
-                              ₽ {budget.spent.toLocaleString()} из ₽{" "}
+                              ₽ {budget.spent.toLocaleString()} из ₽{' '}
                               {Number(budget.amount).toLocaleString()}
                             </span>
                             <span
                               className={`font-semibold ${
-                                isExceeded ? "text-destructive" : "text-success"
+                                isExceeded ? 'text-destructive' : 'text-success'
                               }`}
                             >
                               {percentage.toFixed(0)}%
@@ -524,25 +591,33 @@ const Budgets = () => {
                           <Progress
                             value={Math.min(percentage, 100)}
                             className={`h-3 ${
-                              isExceeded ? "[&>div]:bg-destructive" : "[&>div]:bg-success"
+                              isExceeded
+                                ? '[&>div]:bg-destructive'
+                                : '[&>div]:bg-success'
                             }`}
                           />
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
-                              Осталось:{" "}
+                              Осталось:{' '}
                               <span
                                 className={`font-semibold ${
-                                  isExceeded ? "text-destructive" : "text-success"
+                                  isExceeded
+                                    ? 'text-destructive'
+                                    : 'text-success'
                                 }`}
                               >
-                                ₽{" "}
+                                ₽{' '}
                                 {isExceeded
                                   ? `-${Math.abs(Number(budget.amount) - budget.spent).toLocaleString()}`
-                                  : (Number(budget.amount) - budget.spent).toLocaleString()}
+                                  : (
+                                      Number(budget.amount) - budget.spent
+                                    ).toLocaleString()}
                               </span>
                             </span>
                             <span className="text-muted-foreground">
-                              {isExceeded ? "Перерасход" : `${(100 - percentage).toFixed(0)}%`}
+                              {isExceeded
+                                ? 'Перерасход'
+                                : `${(100 - percentage).toFixed(0)}%`}
                             </span>
                           </div>
                         </div>
@@ -562,22 +637,32 @@ const Budgets = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {budgetsWithStatus.filter(b => b.status === "exceeded").map(budget => (
-                  <div key={budget.id} className="rounded-lg bg-destructive/10 p-3">
-                    <div className="flex gap-2">
-                      <AlertTriangle className="h-5 w-5 flex-shrink-0 text-destructive" />
-                      <div>
-                        <p className="text-sm font-medium">
-                          Превышение бюджета "{budget.name}"
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          -₽{Math.abs(Number(budget.amount) - budget.spent).toLocaleString()} за период
-                        </p>
+                {budgetsWithStatus
+                  .filter((b) => b.status === 'exceeded')
+                  .map((budget) => (
+                    <div
+                      key={budget.id}
+                      className="rounded-lg bg-destructive/10 p-3"
+                    >
+                      <div className="flex gap-2">
+                        <AlertTriangle className="h-5 w-5 flex-shrink-0 text-destructive" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            Превышение бюджета "{budget.name}"
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            -₽
+                            {Math.abs(
+                              Number(budget.amount) - budget.spent
+                            ).toLocaleString()}{' '}
+                            за период
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {budgetsWithStatus.filter(b => b.status === "exceeded").length === 0 && (
+                  ))}
+                {budgetsWithStatus.filter((b) => b.status === 'exceeded')
+                  .length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     Нет рекомендаций
                   </div>
@@ -589,7 +674,10 @@ const Budgets = () => {
       </div>
 
       {/* Edit Budget Dialog */}
-      <Dialog open={!!editingBudget} onOpenChange={(open) => !open && setEditingBudget(null)}>
+      <Dialog
+        open={!!editingBudget}
+        onOpenChange={(open) => !open && setEditingBudget(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Редактировать бюджет</DialogTitle>
@@ -605,7 +693,9 @@ const Budgets = () => {
                 end_date: editingBudget.end_date,
                 alert_threshold: editingBudget.alert_threshold.toString(),
               }}
-              onSubmit={(data) => updateBudgetMutation.mutate({ id: editingBudget.id, data })}
+              onSubmit={(data) =>
+                updateBudgetMutation.mutate({ id: editingBudget.id, data })
+              }
               onClose={() => setEditingBudget(null)}
             />
           )}
@@ -613,7 +703,10 @@ const Budgets = () => {
       </Dialog>
 
       {/* Delete Budget Dialog */}
-      <AlertDialog open={!!deletingBudget} onOpenChange={(open) => !open && setDeletingBudget(null)}>
+      <AlertDialog
+        open={!!deletingBudget}
+        onOpenChange={(open) => !open && setDeletingBudget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить бюджет?</AlertDialogTitle>
@@ -624,14 +717,15 @@ const Budgets = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deletingBudget && deleteBudgetMutation.mutate(deletingBudget)}
+              onClick={() =>
+                deletingBudget && deleteBudgetMutation.mutate(deletingBudget)
+              }
             >
               Удалить
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   );
 };

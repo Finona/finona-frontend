@@ -1,11 +1,19 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { Wallet, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Download } from "lucide-react";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { ChartCard } from "@/components/dashboard/ChartCard";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import {
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
+  Download,
+} from 'lucide-react';
+import { StatsCard } from '@/components/dashboard/StatsCard';
+import { ChartCard } from '@/components/dashboard/ChartCard';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   LineChart,
   Line,
@@ -20,18 +28,29 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from "recharts";
-import { accountsService, transactionsService, budgetsService, categoriesService } from "@/lib/api-services";
-import { useToast } from "@/hooks/use-toast";
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from "date-fns";
-import { ru } from "date-fns/locale";
+} from 'recharts';
+import {
+  accountsService,
+  transactionsService,
+  budgetsService,
+  categoriesService,
+} from '@/lib/api-services';
+import { useToast } from '@/hooks/use-toast';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachMonthOfInterval,
+  subMonths,
+} from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const { data: accounts } = useQuery({
-    queryKey: ["accounts"],
+    queryKey: ['accounts'],
     queryFn: async () => {
       return accountsService.getAll();
     },
@@ -45,7 +64,7 @@ const Dashboard = () => {
   }, []);
 
   const { data: transactions } = useQuery({
-    queryKey: ["transactions", chartDateRange],
+    queryKey: ['transactions', chartDateRange],
     queryFn: async () => {
       const endOfDay = new Date(chartDateRange.end);
       endOfDay.setHours(23, 59, 59, 999);
@@ -57,14 +76,14 @@ const Dashboard = () => {
   });
 
   const { data: categories } = useQuery({
-    queryKey: ["categories"],
+    queryKey: ['categories'],
     queryFn: async () => {
       return categoriesService.getAll();
     },
   });
 
   const { data: budgets } = useQuery({
-    queryKey: ["budgets"],
+    queryKey: ['budgets'],
     queryFn: async () => {
       return budgetsService.getAll();
     },
@@ -72,7 +91,7 @@ const Dashboard = () => {
 
   const categoriesMap = useMemo(() => {
     if (!categories) return {};
-    return Object.fromEntries(categories.map(cat => [cat.id, cat]));
+    return Object.fromEntries(categories.map((cat) => [cat.id, cat]));
   }, [categories]);
 
   const activeAccounts = useMemo(() => {
@@ -80,14 +99,17 @@ const Dashboard = () => {
   }, [accounts]);
 
   const stats = useMemo(() => {
-    const totalBalance = activeAccounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
+    const totalBalance = activeAccounts.reduce(
+      (sum, acc) => sum + Number(acc.balance),
+      0
+    );
     const txns = transactions || [];
 
     const totalIncome = txns
-      .filter((t) => t.type === "INCOME")
+      .filter((t) => t.type === 'INCOME')
       .reduce((sum, t) => sum + Number(t.amount), 0);
     const totalExpenses = txns
-      .filter((t) => t.type === "EXPENSE")
+      .filter((t) => t.type === 'EXPENSE')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
     return {
@@ -116,15 +138,15 @@ const Dashboard = () => {
       });
 
       const income = monthTransactions
-        .filter((t) => t.type === "INCOME")
+        .filter((t) => t.type === 'INCOME')
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
       const expenses = monthTransactions
-        .filter((t) => t.type === "EXPENSE")
+        .filter((t) => t.type === 'EXPENSE')
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
       return {
-        month: format(month, "MMM", { locale: ru }),
+        month: format(month, 'MMM', { locale: ru }),
         income,
         expenses,
       };
@@ -135,20 +157,23 @@ const Dashboard = () => {
     if (!(transactions || []).length) return [];
 
     const expensesByCategory = (transactions || [])
-      .filter((t) => t.type === "EXPENSE" && t.category_id)
-      .reduce((acc, t) => {
-        const category = categoriesMap[t.category_id || ""];
-        const categoryName = category?.name || "Без категории";
-        acc[categoryName] = (acc[categoryName] || 0) + Number(t.amount);
-        return acc;
-      }, {} as Record<string, number>);
+      .filter((t) => t.type === 'EXPENSE' && t.category_id)
+      .reduce(
+        (acc, t) => {
+          const category = categoriesMap[t.category_id || ''];
+          const categoryName = category?.name || 'Без категории';
+          acc[categoryName] = (acc[categoryName] || 0) + Number(t.amount);
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
     const colors = [
-      "hsl(var(--accent))",
-      "hsl(var(--primary))",
-      "hsl(var(--warning))",
-      "hsl(var(--destructive))",
-      "hsl(var(--muted))",
+      'hsl(var(--accent))',
+      'hsl(var(--primary))',
+      'hsl(var(--warning))',
+      'hsl(var(--destructive))',
+      'hsl(var(--muted))',
     ];
 
     return Object.entries(expensesByCategory)
@@ -159,40 +184,45 @@ const Dashboard = () => {
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-  }, [(transactions || []), categoriesMap]);
+  }, [transactions || [], categoriesMap]);
 
   const recentTransactions = useMemo(() => {
     if (!(transactions || []).length) return [];
     return (transactions || []).slice(0, 4);
-  }, [(transactions || [])]);
+  }, [transactions || []]);
 
   const handleExport = () => {
     if (!(transactions || []).length) return;
 
     const csv = [
-      ["Дата", "Описание", "Категория", "Тип", "Сумма"].join(","),
+      ['Дата', 'Описание', 'Категория', 'Тип', 'Сумма'].join(','),
       ...(transactions || []).map((t) => {
         const category = t.category_id ? categoriesMap[t.category_id] : null;
-        const typeLabel = t.type === "INCOME" ? "Доход" : t.type === "EXPENSE" ? "Расход" : "Перевод";
+        const typeLabel =
+          t.type === 'INCOME'
+            ? 'Доход'
+            : t.type === 'EXPENSE'
+              ? 'Расход'
+              : 'Перевод';
         return [
-          format(new Date(t.date), "dd.MM.yyyy"),
-          t.description || "-",
-          category?.name || "-",
+          format(new Date(t.date), 'dd.MM.yyyy'),
+          t.description || '-',
+          category?.name || '-',
           typeLabel,
           t.amount,
-        ].join(",");
+        ].join(',');
       }),
-    ].join("\n");
+    ].join('\n');
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `финансы_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `финансы_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
 
     toast({
-      title: "Экспорт завершён",
-      description: "Данные успешно экспортированы",
+      title: 'Экспорт завершён',
+      description: 'Данные успешно экспортированы',
     });
   };
 
@@ -232,7 +262,7 @@ const Dashboard = () => {
           title="Остаток"
           value={`₽ ${stats.savings.toLocaleString()}`}
           change={`${stats.totalIncome > 0 ? ((stats.savings / stats.totalIncome) * 100).toFixed(1) : 0}% от дохода`}
-          changeType={stats.savings >= 0 ? "positive" : "negative"}
+          changeType={stats.savings >= 0 ? 'positive' : 'negative'}
           icon={DollarSign}
           iconColor="text-accent"
         />
@@ -250,7 +280,10 @@ const Dashboard = () => {
         >
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={cashFlowData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
               <XAxis
                 dataKey="month"
                 stroke="hsl(var(--muted-foreground))"
@@ -263,9 +296,9 @@ const Dashboard = () => {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "var(--radius)",
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: 'var(--radius)',
                 }}
                 formatter={(value: number) => `₽${value.toLocaleString()}`}
               />
@@ -276,7 +309,7 @@ const Dashboard = () => {
                 stroke="hsl(var(--success))"
                 strokeWidth={2}
                 name="Доходы"
-                dot={{ fill: "hsl(var(--success))" }}
+                dot={{ fill: 'hsl(var(--success))' }}
               />
               <Line
                 type="monotone"
@@ -284,7 +317,7 @@ const Dashboard = () => {
                 stroke="hsl(var(--destructive))"
                 strokeWidth={2}
                 name="Расходы"
-                dot={{ fill: "hsl(var(--destructive))" }}
+                dot={{ fill: 'hsl(var(--destructive))' }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -300,7 +333,8 @@ const Dashboard = () => {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) => {
-                    const shortName = name.length > 10 ? name.slice(0, 10) + "…" : name;
+                    const shortName =
+                      name.length > 10 ? name.slice(0, 10) + '…' : name;
                     return `${shortName} ${(percent * 100).toFixed(0)}%`;
                   }}
                   outerRadius={100}
@@ -314,9 +348,9 @@ const Dashboard = () => {
                 <Tooltip
                   formatter={(value: number) => `₽${value.toLocaleString()}`}
                   contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 'var(--radius)',
                   }}
                 />
               </PieChart>
@@ -345,9 +379,9 @@ const Dashboard = () => {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "var(--radius)",
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 'var(--radius)',
               }}
               formatter={(value: number) => `₽${value.toLocaleString()}`}
             />
@@ -381,12 +415,12 @@ const Dashboard = () => {
                   <div className="flex items-center gap-3">
                     <div
                       className={`rounded-lg p-2 ${
-                        transaction.type === "INCOME"
-                          ? "bg-success/10"
-                          : "bg-destructive/10"
+                        transaction.type === 'INCOME'
+                          ? 'bg-success/10'
+                          : 'bg-destructive/10'
                       }`}
                     >
-                      {transaction.type === "INCOME" ? (
+                      {transaction.type === 'INCOME' ? (
                         <ArrowUpRight className="h-4 w-4 text-success" />
                       ) : (
                         <ArrowDownRight className="h-4 w-4 text-destructive" />
@@ -394,20 +428,28 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <p className="font-medium">
-                        {transaction.description || transaction.counterparty || "Без описания"}
+                        {transaction.description ||
+                          transaction.counterparty ||
+                          'Без описания'}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {categoriesMap[transaction.category_id || ""]?.name || "Без категории"} •{" "}
-                        {format(new Date(transaction.date), "dd MMM", { locale: ru })}
+                        {categoriesMap[transaction.category_id || '']?.name ||
+                          'Без категории'}{' '}
+                        •{' '}
+                        {format(new Date(transaction.date), 'dd MMM', {
+                          locale: ru,
+                        })}
                       </p>
                     </div>
                   </div>
                   <p
                     className={`font-semibold ${
-                      transaction.type === "INCOME" ? "text-success" : "text-destructive"
+                      transaction.type === 'INCOME'
+                        ? 'text-success'
+                        : 'text-destructive'
                     }`}
                   >
-                    {transaction.type === "INCOME" ? "+" : "-"}₽
+                    {transaction.type === 'INCOME' ? '+' : '-'}₽
                     {Number(transaction.amount).toLocaleString()}
                   </p>
                 </div>
@@ -421,7 +463,7 @@ const Dashboard = () => {
           <Button
             variant="outline"
             className="mt-4 w-full"
-            onClick={() => navigate("/transactions")}
+            onClick={() => navigate('/transactions')}
           >
             Показать все
           </Button>
@@ -430,31 +472,35 @@ const Dashboard = () => {
         <Card className="p-6">
           <h3 className="mb-4 text-lg font-semibold">Бюджеты</h3>
           <div className="space-y-4">
-            {budgets && budgets.filter(b => b.is_active).length > 0 ? (
-              budgets.filter(b => b.is_active).slice(0, 3).map((budget) => {
-                const percentage = (Number(budget.spent) / Number(budget.amount)) * 100;
-                const isOverBudget = percentage > 100;
+            {budgets && budgets.filter((b) => b.is_active).length > 0 ? (
+              budgets
+                .filter((b) => b.is_active)
+                .slice(0, 3)
+                .map((budget) => {
+                  const percentage =
+                    (Number(budget.spent) / Number(budget.amount)) * 100;
+                  const isOverBudget = percentage > 100;
 
-                return (
-                  <div key={budget.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{budget.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ₽{Number(budget.spent).toLocaleString()} / ₽
-                        {Number(budget.amount).toLocaleString()}
-                      </span>
+                  return (
+                    <div key={budget.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{budget.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          ₽{Number(budget.spent).toLocaleString()} / ₽
+                          {Number(budget.amount).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className={`h-full rounded-full ${
+                            isOverBudget ? 'bg-destructive' : 'bg-success'
+                          }`}
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className={`h-full rounded-full ${
-                          isOverBudget ? "bg-destructive" : "bg-success"
-                        }`}
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })
+                  );
+                })
             ) : (
               <p className="text-center text-muted-foreground py-4">
                 У вас пока нет бюджетов
@@ -464,7 +510,7 @@ const Dashboard = () => {
           <Button
             variant="outline"
             className="mt-4 w-full"
-            onClick={() => navigate("/budgets")}
+            onClick={() => navigate('/budgets')}
           >
             Управление бюджетами
           </Button>

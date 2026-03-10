@@ -1,12 +1,12 @@
-import { LucideIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { LucideIcon } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface StatsCardProps {
   title: string;
   value: string;
   change?: string;
-  changeType?: "positive" | "negative" | "neutral";
+  changeType?: 'positive' | 'negative' | 'neutral';
   icon: LucideIcon;
   iconColor?: string;
 }
@@ -15,9 +15,9 @@ export const StatsCard = ({
   title,
   value,
   change,
-  changeType = "neutral",
+  changeType = 'neutral',
   icon: Icon,
-  iconColor = "text-primary",
+  iconColor = 'text-primary',
 }: StatsCardProps) => {
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
@@ -29,17 +29,17 @@ export const StatsCard = ({
             {change && (
               <p
                 className={cn(
-                  "text-xs font-medium",
-                  changeType === "positive" && "text-success",
-                  changeType === "negative" && "text-destructive",
-                  changeType === "neutral" && "text-muted-foreground"
+                  'text-xs font-medium',
+                  changeType === 'positive' && 'text-success',
+                  changeType === 'negative' && 'text-destructive',
+                  changeType === 'neutral' && 'text-muted-foreground'
                 )}
               >
                 {change}
               </p>
             )}
           </div>
-          <div className={cn("rounded-lg bg-primary/10 p-3", iconColor)}>
+          <div className={cn('rounded-lg bg-primary/10 p-3', iconColor)}>
             <Icon className="h-5 w-5" />
           </div>
         </div>

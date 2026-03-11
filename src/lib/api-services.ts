@@ -20,6 +20,12 @@ import type {
   RegisterRequest,
   AuthResponse,
   User,
+  DashboardSummary,
+  EnrichedTransactionsResponse,
+  AccountsWithStatsResponse,
+  CategoriesWithStatsResponse,
+  EnrichedBudgetsResponse,
+  ReportsAnalyticsResponse,
 } from './api-types';
 
 export const authService = {
@@ -115,4 +121,66 @@ export const notificationsService = {
     apiClient.patch<Notification>(`/notifications/${id}`, { is_read: true }),
 
   delete: (id: string) => apiClient.delete<void>(`/notifications/${id}`),
+};
+
+export const dashboardService = {
+  getSummary: () => apiClient.get<DashboardSummary>('/dashboard/summary'),
+};
+
+export const enrichedTransactionsService = {
+  getAll: (params?: {
+    search?: string;
+    type?: 'expense' | 'income' | 'transfer';
+    category_id?: string;
+    page?: number;
+    per_page?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.type) query.set('type', params.type);
+    if (params?.category_id) query.set('category_id', params.category_id);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.per_page) query.set('per_page', params.per_page.toString());
+    const queryString = query.toString();
+    return apiClient.get<EnrichedTransactionsResponse>(
+      `/transactions/enriched${queryString ? `?${queryString}` : ''}`
+    );
+  },
+};
+
+export const accountsWithStatsService = {
+  get: () => apiClient.get<AccountsWithStatsResponse>('/accounts/with-stats'),
+};
+
+export const categoriesWithStatsService = {
+  get: () =>
+    apiClient.get<CategoriesWithStatsResponse>('/categories/with-stats'),
+};
+
+export const enrichedBudgetsService = {
+  get: (period?: string) => {
+    const query = period ? `?period=${period}` : '';
+    return apiClient.get<EnrichedBudgetsResponse>(`/budgets/enriched${query}`);
+  },
+};
+
+export const reportsService = {
+  getAnalytics: (params?: { start_date?: string; end_date?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.start_date) query.set('start_date', params.start_date);
+    if (params?.end_date) query.set('end_date', params.end_date);
+    const queryString = query.toString();
+    return apiClient.get<ReportsAnalyticsResponse>(
+      `/reports/analytics${queryString ? `?${queryString}` : ''}`
+    );
+  },
+};
+
+export const exportService = {
+  csv: (type: 'transactions' | 'accounts' | 'categories' | 'budgets') =>
+    apiClient.get<Blob>(`/export/csv?type=${type}`, {
+      responseType: 'blob',
+    } as any),
+
+  json: () => apiClient.get<Blob>('/export/json', { responseType: 'blob' } as any),
 };

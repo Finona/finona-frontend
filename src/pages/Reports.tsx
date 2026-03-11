@@ -1,8 +1,8 @@
+import { useState, useMemo } from 'react';
 import {
   Download,
-  Calendar,
-  FileText,
   TrendingUp,
+  FileText,
   PieChart as PieChartIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,9 +30,7 @@ import {
   Legend,
 } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
-import { transactionsService, categoriesService } from '@/lib/api-services';
-import { useAuth } from '@/hooks/useAuth';
-import { useState, useMemo } from 'react';
+import { reportsService, exportService } from '@/lib/api-services';
 import { useToast } from '@/hooks/use-toast';
 import {
   format,
@@ -58,279 +56,89 @@ const CHART_COLORS = [
 ];
 
 const Reports = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState<string>('current-month');
 
-  const { startDate, endDate, previousStartDate, previousEndDate } =
-    useMemo(() => {
-      const now = new Date();
-      let start: Date, end: Date, prevStart: Date, prevEnd: Date;
+  const { startDate, endDate } = useMemo(() => {
+    const now = new Date();
+    let start: Date, end: Date;
 
-      switch (selectedPeriod) {
-        case 'current-month':
-          start = startOfMonth(now);
-          end = endOfMonth(now);
-          prevStart = startOfMonth(subMonths(now, 1));
-          prevEnd = endOfMonth(subMonths(now, 1));
-          break;
-        case 'previous-month':
-          start = startOfMonth(subMonths(now, 1));
-          end = endOfMonth(subMonths(now, 1));
-          prevStart = startOfMonth(subMonths(now, 2));
-          prevEnd = endOfMonth(subMonths(now, 2));
-          break;
-        case 'quarter':
-          start = startOfQuarter(now);
-          end = endOfQuarter(now);
-          prevStart = startOfQuarter(subMonths(now, 3));
-          prevEnd = endOfQuarter(subMonths(now, 3));
-          break;
-        case 'year':
-          start = startOfYear(now);
-          end = endOfYear(now);
-          prevStart = startOfYear(subMonths(now, 12));
-          prevEnd = endOfYear(subMonths(now, 12));
-          break;
-        default:
-          start = startOfMonth(now);
-          end = endOfMonth(now);
-          prevStart = startOfMonth(subMonths(now, 1));
-          prevEnd = endOfMonth(subMonths(now, 1));
-      }
-
-      return {
-        startDate: start,
-        endDate: end,
-        previousStartDate: prevStart,
-        previousEndDate: prevEnd,
-      };
-    }, [selectedPeriod]);
-
-  const { data: allCategories = [] } = useQuery({
-    queryKey: ['categories-report'],
-    queryFn: () => categoriesService.getAll(),
-    enabled: !!user,
-  });
-
-  const categoryMap = useMemo(() => {
-    return Object.fromEntries(allCategories.map((cat) => [cat.id, cat]));
-  }, [allCategories]);
-
-  const { data: currentTransactions = [], isLoading } = useQuery({
-    queryKey: ['transactions-report', startDate, endDate],
-    queryFn: () =>
-      transactionsService.getAll({
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-      }),
-    enabled: !!user,
-  });
-
-  const { data: previousTransactions = [] } = useQuery({
-    queryKey: [
-      'transactions-report-previous',
-      previousStartDate,
-      previousEndDate,
-    ],
-    queryFn: () =>
-      transactionsService.getAll({
-        start_date: previousStartDate.toISOString(),
-        end_date: previousEndDate.toISOString(),
-      }),
-    enabled: !!user,
-  });
-
-  const { data: last6MonthsTransactions = [] } = useQuery({
-    queryKey: ['transactions-last-6-months'],
-    queryFn: () => {
-      const sixMonthsAgo = subMonths(new Date(), 6);
-      return transactionsService.getAll({
-        start_date: startOfMonth(sixMonthsAgo).toISOString(),
-      });
-    },
-    enabled: !!user,
-  });
-
-  const stats = useMemo(() => {
-    const income = currentTransactions
-      .filter((t) => t.type.toUpperCase() === 'INCOME')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const expenses = currentTransactions
-      .filter((t) => t.type.toUpperCase() === 'EXPENSE')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const profit = income - expenses;
-    const profitMargin = income > 0 ? (profit / income) * 100 : 0;
-
-    const prevIncome = previousTransactions
-      .filter((t) => t.type.toUpperCase() === 'INCOME')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const prevExpenses = previousTransactions
-      .filter((t) => t.type.toUpperCase() === 'EXPENSE')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const prevProfit = prevIncome - prevExpenses;
-
-    const incomeChange =
-      prevIncome > 0 ? ((income - prevIncome) / prevIncome) * 100 : 0;
-    const expensesChange =
-      prevExpenses > 0 ? ((expenses - prevExpenses) / prevExpenses) * 100 : 0;
-    const profitChange =
-      prevProfit !== 0
-        ? ((profit - prevProfit) / Math.abs(prevProfit)) * 100
-        : 0;
-
-    return {
-      income,
-      expenses,
-      profit,
-      profitMargin,
-      incomeChange,
-      expensesChange,
-      profitChange,
-    };
-  }, [currentTransactions, previousTransactions]);
-
-  const monthlyData = useMemo(() => {
-    const monthsMap = new Map<string, { income: number; expenses: number }>();
-
-    last6MonthsTransactions.forEach((transaction) => {
-      const monthKey = format(new Date(transaction.date), 'MMM', {
-        locale: ru,
-      });
-      const current = monthsMap.get(monthKey) || { income: 0, expenses: 0 };
-
-      if (transaction.type.toUpperCase() === 'INCOME') {
-        current.income += Number(transaction.amount);
-      } else if (transaction.type.toUpperCase() === 'EXPENSE') {
-        current.expenses += Number(transaction.amount);
-      }
-
-      monthsMap.set(monthKey, current);
-    });
-
-    return Array.from(monthsMap.entries()).map(([month, data]) => ({
-      month,
-      income: data.income,
-      expenses: data.expenses,
-      profit: data.income - data.expenses,
-    }));
-  }, [last6MonthsTransactions]);
-
-  const categoryExpenses = useMemo(() => {
-    const categoriesMap = new Map<
-      string,
-      { name: string; value: number; icon?: string }
-    >();
-
-    currentTransactions
-      .filter((t) => t.type.toUpperCase() === 'EXPENSE')
-      .forEach((transaction) => {
-        const category = transaction.category_id
-          ? categoryMap[transaction.category_id]
-          : null;
-        const categoryName = category?.name || 'Без категории';
-        const current = categoriesMap.get(categoryName) || {
-          name: categoryName,
-          value: 0,
-          icon: category?.icon,
-        };
-        current.value += Number(transaction.amount);
-        categoriesMap.set(categoryName, current);
-      });
-
-    return Array.from(categoriesMap.values())
-      .sort((a, b) => b.value - a.value)
-      .map((item, index) => ({
-        ...item,
-        color: CHART_COLORS[index % CHART_COLORS.length],
-      }));
-  }, [currentTransactions, categoryMap]);
-
-  const topCounterparties = useMemo(() => {
-    const counterpartiesMap = new Map<
-      string,
-      { amount: number; transactions: number }
-    >();
-
-    currentTransactions.forEach((transaction) => {
-      if (transaction.counterparty) {
-        const current = counterpartiesMap.get(transaction.counterparty) || {
-          amount: 0,
-          transactions: 0,
-        };
-        current.amount += Number(transaction.amount);
-        current.transactions += 1;
-        counterpartiesMap.set(transaction.counterparty, current);
-      }
-    });
-
-    return Array.from(counterpartiesMap.entries())
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-  }, [currentTransactions]);
-
-  const handleExport = (reportType: string) => {
-    let csvContent = '';
-    let filename = '';
-
-    switch (reportType) {
-      case 'pl':
-        csvContent = 'Месяц,Доходы,Расходы,Остаток\n';
-        monthlyData.forEach((row) => {
-          csvContent += `${row.month},${row.income},${row.expenses},${row.profit}\n`;
-        });
-        filename = 'profit-loss-report.csv';
+    switch (selectedPeriod) {
+      case 'current-month':
+        start = startOfMonth(now);
+        end = endOfMonth(now);
         break;
-
-      case 'categories':
-        csvContent = 'Категория,Сумма\n';
-        categoryExpenses.forEach((cat) => {
-          csvContent += `${cat.name},${cat.value}\n`;
-        });
-        filename = 'category-expenses-report.csv';
+      case 'previous-month':
+        start = startOfMonth(subMonths(now, 1));
+        end = endOfMonth(subMonths(now, 1));
         break;
-
-      case 'counterparties':
-        csvContent = 'Контрагент,Сумма,Количество операций\n';
-        topCounterparties.forEach((cp) => {
-          csvContent += `${cp.name},${cp.amount},${cp.transactions}\n`;
-        });
-        filename = 'counterparties-report.csv';
+      case 'quarter':
+        start = startOfQuarter(now);
+        end = endOfQuarter(now);
         break;
-
-      case 'transactions':
-        csvContent = 'Дата,Тип,Сумма,Категория,Контрагент,Описание\n';
-        currentTransactions.forEach((t) => {
-          const category = t.category_id ? categoryMap[t.category_id] : null;
-          const typeLabel =
-            t.type.toUpperCase() === 'INCOME' ? 'Доход' : 'Расход';
-          csvContent += `${format(new Date(t.date), 'dd.MM.yyyy')},${typeLabel},${t.amount},${category?.name || ''},${t.counterparty || ''},${t.description || ''}\n`;
-        });
-        filename = 'transactions-report.csv';
+      case 'year':
+        start = startOfYear(now);
+        end = endOfYear(now);
         break;
-
       default:
-        toast({ title: 'Отчёт недоступен', variant: 'destructive' });
-        return;
+        start = startOfMonth(now);
+        end = endOfMonth(now);
     }
 
-    const blob = new Blob(['\ufeff' + csvContent], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
+    return { startDate: start, endDate: end };
+  }, [selectedPeriod]);
 
-    toast({
-      title: 'Отчёт экспортирован',
-      description: `Файл ${filename} загружен`,
-    });
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ['reports-analytics', startDate, endDate],
+    queryFn: () =>
+      reportsService.getAnalytics({
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
+      }),
+  });
+
+  const monthlyData = useMemo(() => {
+    return (
+      analytics?.monthly_data.map((item) => ({
+        month: format(new Date(item.month + '-01'), 'MMM', { locale: ru }),
+        income: Number(item.income),
+        expenses: Number(item.expense),
+        profit: Number(item.income) - Number(item.expense),
+      })) || []
+    );
+  }, [analytics]);
+
+  const categoryExpenses = useMemo(() => {
+    return (
+      analytics?.expenses_by_category.map((item, index) => ({
+        name: item.name,
+        value: Number(item.amount),
+        color: item.color || CHART_COLORS[index % CHART_COLORS.length],
+      })) || []
+    );
+  }, [analytics]);
+
+  const handleExport = async (
+    type: 'transactions' | 'accounts' | 'categories' | 'budgets'
+  ) => {
+    try {
+      const blob = await exportService.csv(type);
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${type}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.click();
+
+      toast({
+        title: 'Экспорт завершён',
+        description: `Файл ${type}.csv загружен`,
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка',
+        description: 'Не удалось экспортировать данные',
+      });
+    }
   };
 
   if (isLoading) {
@@ -343,6 +151,13 @@ const Reports = () => {
       </div>
     );
   }
+
+  const income = Number(analytics?.stats.income || 0);
+  const expenses = Number(analytics?.stats.expenses || 0);
+  const balance = Number(analytics?.stats.balance || 0);
+  const incomeChange = analytics?.stats.income_change_percent || 0;
+  const expensesChange = analytics?.stats.expenses_change_percent || 0;
+  const profitMargin = income > 0 ? (balance / income) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -379,13 +194,13 @@ const Reports = () => {
                   Доходы за период
                 </p>
                 <p className="text-2xl font-bold text-success">
-                  ₽ {stats.income.toLocaleString()}
+                  ₽ {income.toLocaleString()}
                 </p>
                 <p
-                  className={`text-xs ${stats.incomeChange >= 0 ? 'text-success' : 'text-destructive'}`}
+                  className={`text-xs ${incomeChange >= 0 ? 'text-success' : 'text-destructive'}`}
                 >
-                  {stats.incomeChange >= 0 ? '+' : ''}
-                  {stats.incomeChange.toFixed(1)}% к пред. периоду
+                  {incomeChange >= 0 ? '+' : ''}
+                  {incomeChange.toFixed(1)}% к пред. периоду
                 </p>
               </div>
               <div className="rounded-lg bg-success/10 p-3">
@@ -403,13 +218,13 @@ const Reports = () => {
                   Расходы за период
                 </p>
                 <p className="text-2xl font-bold text-foreground">
-                  ₽ {stats.expenses.toLocaleString()}
+                  ₽ {expenses.toLocaleString()}
                 </p>
                 <p
-                  className={`text-xs ${stats.expensesChange <= 0 ? 'text-success' : 'text-destructive'}`}
+                  className={`text-xs ${expensesChange <= 0 ? 'text-success' : 'text-destructive'}`}
                 >
-                  {stats.expensesChange >= 0 ? '+' : ''}
-                  {stats.expensesChange.toFixed(1)}% к пред. периоду
+                  {expensesChange >= 0 ? '+' : ''}
+                  {expensesChange.toFixed(1)}% к пред. периоду
                 </p>
               </div>
               <div className="rounded-lg bg-destructive/10 p-3">
@@ -427,15 +242,12 @@ const Reports = () => {
                   Остаток
                 </p>
                 <p
-                  className={`text-2xl font-bold ${stats.profit >= 0 ? 'text-success' : 'text-destructive'}`}
+                  className={`text-2xl font-bold ${balance >= 0 ? 'text-success' : 'text-destructive'}`}
                 >
-                  ₽ {stats.profit.toLocaleString()}
+                  ₽ {balance.toLocaleString()}
                 </p>
-                <p
-                  className={`text-xs ${stats.profitChange >= 0 ? 'text-success' : 'text-destructive'}`}
-                >
-                  {stats.profitChange >= 0 ? '+' : ''}
-                  {stats.profitChange.toFixed(1)}% к пред. периоду
+                <p className="text-xs text-muted-foreground">
+                  {balance >= 0 ? 'Положительный баланс' : 'Отрицательный баланс'}
                 </p>
               </div>
               <div className="rounded-lg bg-accent/10 p-3">
@@ -453,12 +265,12 @@ const Reports = () => {
                   Рентабельность
                 </p>
                 <p className="text-2xl font-bold text-foreground">
-                  {stats.profitMargin.toFixed(1)}%
+                  {profitMargin.toFixed(1)}%
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {stats.profitMargin > 20
+                  {profitMargin > 20
                     ? 'Отличный'
-                    : stats.profitMargin > 10
+                    : profitMargin > 10
                       ? 'Хороший'
                       : 'Низкий'}{' '}
                   показатель
@@ -480,7 +292,7 @@ const Reports = () => {
           <CardContent>
             {monthlyData.length === 0 ? (
               <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                Нет данных за последние 6 месяцев
+                Нет данных за выбранный период
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
@@ -582,7 +394,7 @@ const Reports = () => {
         <CardContent>
           {monthlyData.length === 0 ? (
             <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-              Нет данных за последние 6 месяцев
+              Нет данных за выбранный период
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -631,12 +443,9 @@ const Reports = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topCounterparties.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Нет данных о контрагентах
-                </div>
-              ) : (
-                topCounterparties.map((counterparty, i) => (
+              {analytics?.top_counterparties &&
+              analytics.top_counterparties.length > 0 ? (
+                analytics.top_counterparties.map((counterparty, i) => (
                   <div
                     key={i}
                     className="flex items-center justify-between rounded-lg border border-border p-4"
@@ -646,14 +455,18 @@ const Reports = () => {
                         {counterparty.name}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {counterparty.transactions} операций
+                        {counterparty.count} операций
                       </p>
                     </div>
                     <p className="text-lg font-bold text-foreground">
-                      ₽ {counterparty.amount.toLocaleString()}
+                      ₽ {Number(counterparty.amount).toLocaleString()}
                     </p>
                   </div>
                 ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Нет данных о контрагентах
+                </div>
               )}
             </div>
           </CardContent>
@@ -669,27 +482,27 @@ const Reports = () => {
                 {
                   name: 'Отчёт о доходах и убытках',
                   icon: FileText,
-                  type: 'pl',
+                  type: 'transactions' as const,
                 },
                 {
                   name: 'Отчёт о движении денежных средств',
                   icon: TrendingUp,
-                  type: 'transactions',
+                  type: 'transactions' as const,
                 },
                 {
                   name: 'Анализ расходов по категориям',
                   icon: PieChartIcon,
-                  type: 'categories',
+                  type: 'categories' as const,
                 },
                 {
-                  name: 'Отчёт по контрагентам',
+                  name: 'Отчёт по счетам',
                   icon: FileText,
-                  type: 'counterparties',
+                  type: 'accounts' as const,
                 },
                 {
                   name: 'Полный экспорт транзакций',
                   icon: FileText,
-                  type: 'transactions',
+                  type: 'transactions' as const,
                 },
               ].map((report, i) => (
                 <div

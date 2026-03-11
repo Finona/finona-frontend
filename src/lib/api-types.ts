@@ -222,3 +222,166 @@ export interface User {
   profile_photo: string | null;
   is_active: boolean;
 }
+
+export interface CashFlowItem {
+  month: string;
+  income: string;
+  expense: string;
+}
+
+export interface ExpenseByCategoryItem {
+  category_id: string;
+  name: string;
+  color: string;
+  amount: string;
+  percentage: number;
+}
+
+export interface DashboardSummary {
+  total_balance: string;
+  total_income: string;
+  total_expenses: string;
+  remaining: string;
+  active_accounts_count: number;
+  cash_flow: CashFlowItem[];
+  expenses_by_category: ExpenseByCategoryItem[];
+}
+
+export interface AccountBrief {
+  id: string;
+  name: string;
+  currency: string;
+}
+
+export interface CategoryBrief {
+  id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+}
+
+export interface EnrichedTransaction {
+  id: string;
+  amount: string;
+  type: 'EXPENSE' | 'INCOME' | 'TRANSFER';
+  description: string | null;
+  date: string;
+  account: AccountBrief | null;
+  category: CategoryBrief | null;
+  counterparty: string | null;
+  notes: string | null;
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+}
+
+export interface EnrichedTransactionsResponse {
+  items: EnrichedTransaction[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface RecentTransaction {
+  id: string;
+  amount: string;
+  type: 'EXPENSE' | 'INCOME' | 'TRANSFER';
+  description: string | null;
+  date: string;
+}
+
+export interface AccountsStatsInfo {
+  total_balance: string;
+  active_count: number;
+  last_sync: string | null;
+}
+
+export interface AccountsWithStatsResponse {
+  accounts: Account[];
+  stats: AccountsStatsInfo;
+  recent_transactions: RecentTransaction[];
+}
+
+export interface CategoryWithStats {
+  id: string;
+  name: string;
+  type: 'EXPENSE' | 'INCOME';
+  color: string | null;
+  total_amount: string;
+  transaction_count: number;
+}
+
+export interface CategoriesSummary {
+  total_income: string;
+  total_expenses: string;
+  income_categories_count: number;
+  expense_categories_count: number;
+}
+
+export interface CategoriesWithStatsResponse {
+  categories: CategoryWithStats[];
+  summary: CategoriesSummary;
+}
+
+export interface EnrichedBudget {
+  id: string;
+  name: string;
+  amount: string;
+  spent: string;
+  remaining: string;
+  percentage: number;
+  status: 'normal' | 'warning' | 'exceeded';
+  period: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+  category: CategoryBrief | null;
+}
+
+export interface BudgetsSummary {
+  total_budget: string;
+  total_spent: string;
+  exceeded_count: number;
+}
+
+export interface EnrichedBudgetsResponse {
+  budgets: EnrichedBudget[];
+  summary: BudgetsSummary;
+}
+
+export interface ReportsPeriod {
+  start: string;
+  end: string;
+}
+
+export interface ReportsStats {
+  income: string;
+  expenses: string;
+  balance: string;
+  avg_transaction: string;
+  income_change_percent: number;
+  expenses_change_percent: number;
+}
+
+export interface MonthlyDataItem {
+  month: string;
+  income: string;
+  expense: string;
+}
+
+export interface TopCounterpartyItem {
+  name: string;
+  amount: string;
+  count: number;
+}
+
+export interface ReportsAnalyticsResponse {
+  period: ReportsPeriod;
+  stats: ReportsStats;
+  monthly_data: MonthlyDataItem[];
+  expenses_by_category: ExpenseByCategoryItem[];
+  top_counterparties: TopCounterpartyItem[];
+}
+
+export interface ExportJsonResponse {
+  exported_at: string;
+  accounts: Account[];
+  transactions: Transaction[];
+  categories: Category[];
+  budgets: Budget[];
+}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -41,40 +41,38 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { categoriesService } from '@/lib/api-services';
-import type { Category, CategoryCreate, CategoryUpdate } from '@/lib/api-types';
+import {
+  categoriesService,
+  categoriesWithStatsService,
+} from '@/lib/api-services';
+import type {
+  CategoryCreate,
+  CategoryUpdate,
+  CategoryWithStats,
+} from '@/lib/api-types';
 
 const Categories = () => {
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [deleteCategory, setDeleteCategory] = useState<any>(null);
+  const [editingCategory, setEditingCategory] =
+    useState<CategoryWithStats | null>(null);
+  const [deleteCategory, setDeleteCategory] =
+    useState<CategoryWithStats | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: categories, isLoading } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => categoriesService.getAll(),
+  const { data: categoriesData, isLoading } = useQuery({
+    queryKey: ['categories-with-stats'],
+    queryFn: () => categoriesWithStatsService.get(),
   });
 
-  const stats = useMemo(() => {
-    if (!categories) return { totalIncome: 0, totalExpenses: 0 };
-
-    const totalIncome = categories
-      .filter((c) => c.type.toUpperCase() === 'INCOME')
-      .reduce((sum, cat) => sum + Number(cat.total_amount || 0), 0);
-
-    const totalExpenses = categories
-      .filter((c) => c.type.toUpperCase() === 'EXPENSE')
-      .reduce((sum, cat) => sum + Number(cat.total_amount || 0), 0);
-
-    return { totalIncome, totalExpenses };
-  }, [categories]);
+  const categories = categoriesData?.categories || [];
+  const summary = categoriesData?.summary;
 
   const createCategoryMutation = useMutation({
     mutationFn: (data: CategoryCreate) => categoriesService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories-with-stats'] });
       setIsAddCategoryOpen(false);
       toast({
         title: 'Категория создана',
@@ -93,7 +91,7 @@ const Categories = () => {
     mutationFn: ({ id, data }: { id: string; data: CategoryUpdate }) =>
       categoriesService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories-with-stats'] });
       setEditingCategory(null);
       toast({
         title: 'Категория обновлена',
@@ -111,7 +109,7 @@ const Categories = () => {
   const deleteCategoryMutation = useMutation({
     mutationFn: (id: string) => categoriesService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['categories-with-stats'] });
       setDeleteCategory(null);
       toast({
         title: 'Категория удалена',
@@ -126,7 +124,15 @@ const Categories = () => {
     },
   });
 
-  const CategoryForm = ({ category, onSubmit, onClose }: any) => {
+  const CategoryForm = ({
+    category,
+    onSubmit,
+    onClose,
+  }: {
+    category?: CategoryWithStats | null;
+    onSubmit: (data: any) => void;
+    onClose: () => void;
+  }) => {
     const categoryType = category?.type
       ? (category.type.toUpperCase() as 'EXPENSE' | 'INCOME')
       : 'EXPENSE';
@@ -134,7 +140,7 @@ const Categories = () => {
     const [formData, setFormData] = useState({
       name: category?.name || '',
       type: categoryType,
-      icon: category?.icon || '',
+      icon: category?.color || '',
       color: category?.color || '',
     });
 
@@ -239,13 +245,16 @@ const Categories = () => {
     );
   }
 
+  const totalIncome = Number(summary?.total_income || 0);
+  const totalExpenses = Number(summary?.total_expenses || 0);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Категории</h1>
           <p className="text-muted-foreground">
-            Всего: {categories?.length || 0} категорий
+            Всего: {categories.length} категорий
           </p>
         </div>
         <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
@@ -279,7 +288,7 @@ const Categories = () => {
                   Всего категорий
                 </p>
                 <p className="text-3xl font-bold text-foreground">
-                  {categories?.length || 0}
+                  {categories.length}
                 </p>
               </div>
               <div className="rounded-lg bg-primary/10 p-3">
@@ -297,7 +306,7 @@ const Categories = () => {
                   Доходы за месяц
                 </p>
                 <p className="text-3xl font-bold text-success">
-                  ₽ {stats.totalIncome.toLocaleString()}
+                  ₽ {totalIncome.toLocaleString()}
                 </p>
               </div>
               <div className="rounded-lg bg-success/10 p-3">
@@ -315,7 +324,7 @@ const Categories = () => {
                   Расходы за месяц
                 </p>
                 <p className="text-3xl font-bold text-foreground">
-                  ₽ {stats.totalExpenses.toLocaleString()}
+                  ₽ {totalExpenses.toLocaleString()}
                 </p>
               </div>
               <div className="rounded-lg bg-destructive/10 p-3">
@@ -333,7 +342,7 @@ const Categories = () => {
               <CardTitle>Все категории</CardTitle>
             </CardHeader>
             <CardContent>
-              {categories && categories.length > 0 ? (
+              {categories.length > 0 ? (
                 <div className="space-y-2">
                   {categories.map((category) => (
                     <div
@@ -341,15 +350,15 @@ const Categories = () => {
                       className="flex items-center justify-between rounded-lg border border-border p-4 transition-all hover:bg-muted/50"
                     >
                       <div className="flex items-center gap-4">
-                        {category.icon && (
-                          <span className="text-2xl">{category.icon}</span>
+                        {category.color && (
+                          <span className="text-2xl">{category.color}</span>
                         )}
                         <div>
                           <p className="font-semibold text-foreground">
                             {category.name}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {category.transactions_count} транзакций
+                            {category.transaction_count} транзакций
                           </p>
                         </div>
                       </div>
@@ -416,19 +425,20 @@ const Categories = () => {
               <CardTitle>Топ категорий</CardTitle>
             </CardHeader>
             <CardContent>
-              {categories && categories.length > 0 ? (
+              {categories.length > 0 ? (
                 <div className="space-y-4">
                   {categories
                     .filter((cat) => cat.type.toUpperCase() === 'EXPENSE')
                     .sort(
-                      (a, b) => Number(b.total_amount) - Number(a.total_amount)
+                      (a, b) =>
+                        Number(b.total_amount) - Number(a.total_amount)
                     )
                     .slice(0, 5)
                     .map((category) => (
                       <div key={category.id} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {category.icon && <span>{category.icon}</span>}
+                            {category.color && <span>{category.color}</span>}
                             <span className="text-sm font-medium">
                               {category.name}
                             </span>
@@ -439,9 +449,8 @@ const Categories = () => {
                         </div>
                         <Progress
                           value={
-                            stats.totalExpenses > 0
-                              ? (Number(category.total_amount) /
-                                  stats.totalExpenses) *
+                            totalExpenses > 0
+                              ? (Number(category.total_amount) / totalExpenses) *
                                 100
                               : 0
                           }
@@ -460,7 +469,6 @@ const Categories = () => {
         </div>
       </div>
 
-      {/* Диалог редактирования категории */}
       <Dialog
         open={!!editingCategory}
         onOpenChange={() => setEditingCategory(null)}
@@ -482,7 +490,6 @@ const Categories = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Диалог удаления категории */}
       <AlertDialog
         open={!!deleteCategory}
         onOpenChange={() => setDeleteCategory(null)}
@@ -498,7 +505,10 @@ const Categories = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteCategoryMutation.mutate(deleteCategory.id)}
+              onClick={() =>
+                deleteCategory &&
+                deleteCategoryMutation.mutate(deleteCategory.id)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить

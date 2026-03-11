@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -30,201 +29,86 @@ import {
   Legend,
 } from 'recharts';
 import {
-  accountsService,
-  transactionsService,
-  budgetsService,
-  categoriesService,
+  dashboardService,
+  enrichedBudgetsService,
+  exportService,
 } from '@/lib/api-services';
 import { useToast } from '@/hooks/use-toast';
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  eachMonthOfInterval,
-  subMonths,
-} from 'date-fns';
+import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+
+const CHART_COLORS = [
+  'hsl(var(--accent))',
+  'hsl(var(--primary))',
+  'hsl(var(--warning))',
+  'hsl(var(--destructive))',
+  'hsl(var(--muted))',
+];
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data: accounts } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: async () => {
-      return accountsService.getAll();
-    },
+  const { data: summary, isLoading } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => dashboardService.getSummary(),
   });
 
-  const chartDateRange = useMemo(() => {
-    return {
-      start: startOfMonth(subMonths(new Date(), 5)),
-      end: new Date(),
-    };
-  }, []);
+  const { data: budgetsData } = useQuery({
+    queryKey: ['budgets-enriched', 'current_month'],
+    queryFn: () => enrichedBudgetsService.get('current_month'),
+  });
 
-  const { data: transactions } = useQuery({
-    queryKey: ['transactions', chartDateRange],
-    queryFn: async () => {
-      const endOfDay = new Date(chartDateRange.end);
-      endOfDay.setHours(23, 59, 59, 999);
-      return transactionsService.getAll({
-        start_date: chartDateRange.start.toISOString(),
-        end_date: endOfDay.toISOString(),
+  const cashFlowData =
+    summary?.cash_flow.map((item) => ({
+      month: format(new Date(item.month + '-01'), 'MMM', { locale: ru }),
+      income: Number(item.income),
+      expenses: Number(item.expense),
+    })) || [];
+
+  const categoryData =
+    summary?.expenses_by_category.map((item, index) => ({
+      name: item.name,
+      value: Number(item.amount),
+      color: item.color || CHART_COLORS[index % CHART_COLORS.length],
+    })) || [];
+
+  const handleExport = async () => {
+    try {
+      const blob = await exportService.csv('transactions');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `финансы_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.click();
+      toast({
+        title: 'Экспорт завершён',
+        description: 'Данные успешно экспортированы',
       });
-    },
-  });
-
-  const { data: categories } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      return categoriesService.getAll();
-    },
-  });
-
-  const { data: budgets } = useQuery({
-    queryKey: ['budgets'],
-    queryFn: async () => {
-      return budgetsService.getAll();
-    },
-  });
-
-  const categoriesMap = useMemo(() => {
-    if (!categories) return {};
-    return Object.fromEntries(categories.map((cat) => [cat.id, cat]));
-  }, [categories]);
-
-  const activeAccounts = useMemo(() => {
-    return accounts?.filter((acc) => acc.is_active) || [];
-  }, [accounts]);
-
-  const stats = useMemo(() => {
-    const totalBalance = activeAccounts.reduce(
-      (sum, acc) => sum + Number(acc.balance),
-      0
-    );
-    const txns = transactions || [];
-
-    const totalIncome = txns
-      .filter((t) => t.type === 'INCOME')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-    const totalExpenses = txns
-      .filter((t) => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    return {
-      totalBalance,
-      totalIncome,
-      totalExpenses,
-      savings: totalIncome - totalExpenses,
-    };
-  }, [activeAccounts, transactions]);
-
-  const cashFlowData = useMemo(() => {
-    if (!transactions) return [];
-
-    const months = eachMonthOfInterval({
-      start: subMonths(new Date(), 5),
-      end: new Date(),
-    });
-
-    return months.map((month) => {
-      const monthStart = startOfMonth(month);
-      const monthEnd = endOfMonth(month);
-
-      const monthTransactions = transactions.filter((t) => {
-        const tDate = new Date(t.date);
-        return tDate >= monthStart && tDate <= monthEnd;
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка',
+        description: 'Не удалось экспортировать данные',
       });
-
-      const income = monthTransactions
-        .filter((t) => t.type === 'INCOME')
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-
-      const expenses = monthTransactions
-        .filter((t) => t.type === 'EXPENSE')
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-
-      return {
-        month: format(month, 'MMM', { locale: ru }),
-        income,
-        expenses,
-      };
-    });
-  }, [transactions]);
-
-  const categoryData = useMemo(() => {
-    if (!(transactions || []).length) return [];
-
-    const expensesByCategory = (transactions || [])
-      .filter((t) => t.type === 'EXPENSE' && t.category_id)
-      .reduce(
-        (acc, t) => {
-          const category = categoriesMap[t.category_id || ''];
-          const categoryName = category?.name || 'Без категории';
-          acc[categoryName] = (acc[categoryName] || 0) + Number(t.amount);
-          return acc;
-        },
-        {} as Record<string, number>
-      );
-
-    const colors = [
-      'hsl(var(--accent))',
-      'hsl(var(--primary))',
-      'hsl(var(--warning))',
-      'hsl(var(--destructive))',
-      'hsl(var(--muted))',
-    ];
-
-    return Object.entries(expensesByCategory)
-      .map(([name, value], index) => ({
-        name,
-        value,
-        color: colors[index % colors.length],
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-  }, [transactions || [], categoriesMap]);
-
-  const recentTransactions = useMemo(() => {
-    if (!(transactions || []).length) return [];
-    return (transactions || []).slice(0, 4);
-  }, [transactions || []]);
-
-  const handleExport = () => {
-    if (!(transactions || []).length) return;
-
-    const csv = [
-      ['Дата', 'Описание', 'Категория', 'Тип', 'Сумма'].join(','),
-      ...(transactions || []).map((t) => {
-        const category = t.category_id ? categoriesMap[t.category_id] : null;
-        const typeLabel =
-          t.type === 'INCOME'
-            ? 'Доход'
-            : t.type === 'EXPENSE'
-              ? 'Расход'
-              : 'Перевод';
-        return [
-          format(new Date(t.date), 'dd.MM.yyyy'),
-          t.description || '-',
-          category?.name || '-',
-          typeLabel,
-          t.amount,
-        ].join(',');
-      }),
-    ].join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `финансы_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    link.click();
-
-    toast({
-      title: 'Экспорт завершён',
-      description: 'Данные успешно экспортированы',
-    });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalBalance = Number(summary?.total_balance || 0);
+  const totalIncome = Number(summary?.total_income || 0);
+  const totalExpenses = Number(summary?.total_expenses || 0);
+  const remaining = Number(summary?.remaining || 0);
+  const activeAccountsCount = summary?.active_accounts_count || 0;
 
   return (
     <div className="space-y-6">
@@ -236,15 +120,15 @@ const Dashboard = () => {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Общий баланс"
-          value={`₽ ${stats.totalBalance.toLocaleString()}`}
-          change={`на ${activeAccounts.length} счетах`}
+          value={`₽ ${totalBalance.toLocaleString()}`}
+          change={`на ${activeAccountsCount} счетах`}
           changeType="neutral"
           icon={Wallet}
           iconColor="text-primary"
         />
         <StatsCard
           title="Доходы"
-          value={`₽ ${stats.totalIncome.toLocaleString()}`}
+          value={`₽ ${totalIncome.toLocaleString()}`}
           change={`за период`}
           changeType="positive"
           icon={TrendingUp}
@@ -252,7 +136,7 @@ const Dashboard = () => {
         />
         <StatsCard
           title="Расходы"
-          value={`₽ ${stats.totalExpenses.toLocaleString()}`}
+          value={`₽ ${totalExpenses.toLocaleString()}`}
           change={`за период`}
           changeType="negative"
           icon={TrendingDown}
@@ -260,9 +144,9 @@ const Dashboard = () => {
         />
         <StatsCard
           title="Остаток"
-          value={`₽ ${stats.savings.toLocaleString()}`}
-          change={`${stats.totalIncome > 0 ? ((stats.savings / stats.totalIncome) * 100).toFixed(1) : 0}% от дохода`}
-          changeType={stats.savings >= 0 ? 'positive' : 'negative'}
+          value={`₽ ${remaining.toLocaleString()}`}
+          change={`${totalIncome > 0 ? ((remaining / totalIncome) * 100).toFixed(1) : 0}% от дохода`}
+          changeType={remaining >= 0 ? 'positive' : 'negative'}
           icon={DollarSign}
           iconColor="text-accent"
         />
@@ -406,51 +290,26 @@ const Dashboard = () => {
         <Card className="p-6">
           <h3 className="mb-4 text-lg font-semibold">Последние транзакции</h3>
           <div className="space-y-4">
-            {recentTransactions.length > 0 ? (
-              recentTransactions.map((transaction) => (
+            {summary?.expenses_by_category &&
+            summary.expenses_by_category.length > 0 ? (
+              summary.expenses_by_category.slice(0, 4).map((cat, index) => (
                 <div
-                  key={transaction.id}
+                  key={cat.category_id || index}
                   className="flex items-center justify-between border-b border-border pb-3 last:border-0 last:pb-0"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`rounded-lg p-2 ${
-                        transaction.type === 'INCOME'
-                          ? 'bg-success/10'
-                          : 'bg-destructive/10'
-                      }`}
-                    >
-                      {transaction.type === 'INCOME' ? (
-                        <ArrowUpRight className="h-4 w-4 text-success" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4 text-destructive" />
-                      )}
+                    <div className="rounded-lg p-2 bg-destructive/10">
+                      <ArrowDownRight className="h-4 w-4 text-destructive" />
                     </div>
                     <div>
-                      <p className="font-medium">
-                        {transaction.description ||
-                          transaction.counterparty ||
-                          'Без описания'}
-                      </p>
+                      <p className="font-medium">{cat.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {categoriesMap[transaction.category_id || '']?.name ||
-                          'Без категории'}{' '}
-                        •{' '}
-                        {format(new Date(transaction.date), 'dd MMM', {
-                          locale: ru,
-                        })}
+                        {cat.percentage.toFixed(1)}% от расходов
                       </p>
                     </div>
                   </div>
-                  <p
-                    className={`font-semibold ${
-                      transaction.type === 'INCOME'
-                        ? 'text-success'
-                        : 'text-destructive'
-                    }`}
-                  >
-                    {transaction.type === 'INCOME' ? '+' : '-'}₽
-                    {Number(transaction.amount).toLocaleString()}
+                  <p className="font-semibold text-destructive">
+                    -₽{Number(cat.amount).toLocaleString()}
                   </p>
                 </div>
               ))
@@ -472,35 +331,31 @@ const Dashboard = () => {
         <Card className="p-6">
           <h3 className="mb-4 text-lg font-semibold">Бюджеты</h3>
           <div className="space-y-4">
-            {budgets && budgets.filter((b) => b.is_active).length > 0 ? (
-              budgets
-                .filter((b) => b.is_active)
-                .slice(0, 3)
-                .map((budget) => {
-                  const percentage =
-                    (Number(budget.spent) / Number(budget.amount)) * 100;
-                  const isOverBudget = percentage > 100;
-
-                  return (
-                    <div key={budget.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{budget.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          ₽{Number(budget.spent).toLocaleString()} / ₽
-                          {Number(budget.amount).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                        <div
-                          className={`h-full rounded-full ${
-                            isOverBudget ? 'bg-destructive' : 'bg-success'
-                          }`}
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        />
-                      </div>
+            {budgetsData?.budgets && budgetsData.budgets.length > 0 ? (
+              budgetsData.budgets.slice(0, 3).map((budget) => {
+                const isOverBudget = budget.status === 'exceeded';
+                return (
+                  <div key={budget.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{budget.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ₽{Number(budget.spent).toLocaleString()} / ₽
+                        {Number(budget.amount).toLocaleString()}
+                      </span>
                     </div>
-                  );
-                })
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                      <div
+                        className={`h-full rounded-full ${
+                          isOverBudget ? 'bg-destructive' : 'bg-success'
+                        }`}
+                        style={{
+                          width: `${Math.min(budget.percentage, 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
             ) : (
               <p className="text-center text-muted-foreground py-4">
                 У вас пока нет бюджетов

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Plus,
   Target,
@@ -38,19 +39,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
-import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  addMonths,
-} from 'date-fns';
-import { ru } from 'date-fns/locale';
-import { budgetsService, categoriesService } from '@/lib/api-services';
-import type { Budget, Category } from '@/lib/api-types';
+  budgetsService,
+  categoriesService,
+  enrichedBudgetsService,
+} from '@/lib/api-services';
+import type { EnrichedBudget } from '@/lib/api-types';
 
 interface BudgetFormData {
   name: string;
@@ -87,9 +83,7 @@ const BudgetForm = ({
     queryKey: ['categories'],
     queryFn: async () => {
       const allCategories = await categoriesService.getAll();
-      return allCategories.filter(
-        (cat) => cat.type.toUpperCase() === 'EXPENSE'
-      );
+      return allCategories.filter((cat) => cat.type.toUpperCase() === 'EXPENSE');
     },
   });
 
@@ -219,80 +213,24 @@ const BudgetForm = ({
 };
 
 const Budgets = () => {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedPeriod, setSelectedPeriod] = useState(0);
+  const [selectedPeriod, setSelectedPeriod] = useState('current_month');
   const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
-  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [editingBudget, setEditingBudget] = useState<EnrichedBudget | null>(null);
   const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
 
-  const currentPeriodStart = useMemo(() => {
-    const date =
-      selectedPeriod >= 0
-        ? subMonths(new Date(), selectedPeriod)
-        : addMonths(new Date(), Math.abs(selectedPeriod));
-    return startOfMonth(date);
-  }, [selectedPeriod]);
-
-  const currentPeriodEnd = useMemo(() => {
-    const date =
-      selectedPeriod >= 0
-        ? subMonths(new Date(), selectedPeriod)
-        : addMonths(new Date(), Math.abs(selectedPeriod));
-    return endOfMonth(date);
-  }, [selectedPeriod]);
-
-  const { data: budgets = [], isLoading: budgetsLoading } = useQuery({
-    queryKey: ['budgets', currentPeriodStart, currentPeriodEnd],
-    queryFn: async () => {
-      const allBudgets = await budgetsService.getAll();
-      const periodStart = format(currentPeriodStart, 'yyyy-MM-dd');
-      const periodEnd = format(currentPeriodEnd, 'yyyy-MM-dd');
-      const filteredBudgets = allBudgets.filter(
-        (b) =>
-          b.is_active && b.start_date <= periodEnd && b.end_date >= periodStart
-      );
-
-      const categoryIds = [
-        ...new Set(filteredBudgets.map((b) => b.category_id).filter(Boolean)),
-      ];
-      if (categoryIds.length > 0) {
-        const categories = await Promise.all(
-          categoryIds.map((id) => categoriesService.getById(id as string))
-        );
-        const categoryMap = new Map(categories.map((cat) => [cat.id, cat]));
-
-        return filteredBudgets.map((b) => ({
-          ...b,
-          category: b.category_id ? categoryMap.get(b.category_id) : undefined,
-        }));
-      }
-
-      return filteredBudgets;
-    },
-    enabled: !!user,
+  const { data: budgetsData, isLoading } = useQuery({
+    queryKey: ['budgets-enriched', selectedPeriod],
+    queryFn: () => enrichedBudgetsService.get(selectedPeriod),
   });
 
-  const budgetsWithStatus = useMemo(() => {
-    return budgets.map((budget) => ({
-      ...budget,
-      status:
-        Number(budget.spent) > Number(budget.amount) ? 'exceeded' : 'good',
-    }));
-  }, [budgets]);
+  const budgets = budgetsData?.budgets || [];
+  const summary = budgetsData?.summary;
 
-  const totalBudget = budgetsWithStatus.reduce(
-    (sum, b) => sum + Number(b.amount),
-    0
-  );
-  const totalSpent = budgetsWithStatus.reduce(
-    (sum, b) => sum + Number(b.spent),
-    0
-  );
-  const budgetsExceeded = budgetsWithStatus.filter(
-    (b) => b.status === 'exceeded'
-  ).length;
+  const totalBudget = Number(summary?.total_budget || 0);
+  const totalSpent = Number(summary?.total_spent || 0);
+  const exceededCount = summary?.exceeded_count || 0;
 
   const createBudgetMutation = useMutation({
     mutationFn: async (data: BudgetFormData) => {
@@ -308,7 +246,7 @@ const Budgets = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets-enriched'] });
       toast({ title: 'Бюджет создан' });
       setBudgetDialogOpen(false);
     },
@@ -334,7 +272,7 @@ const Budgets = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets-enriched'] });
       toast({ title: 'Бюджет обновлен' });
       setEditingBudget(null);
     },
@@ -352,7 +290,7 @@ const Budgets = () => {
       await budgetsService.delete(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budgets-enriched'] });
       toast({ title: 'Бюджет удален' });
       setDeletingBudget(null);
     },
@@ -365,7 +303,7 @@ const Budgets = () => {
     },
   });
 
-  if (budgetsLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <div className="text-center">
@@ -386,31 +324,15 @@ const Budgets = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Select
-            value={selectedPeriod.toString()}
-            onValueChange={(value) => setSelectedPeriod(Number(value))}
-          >
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 6 }, (_, i) => (
-                <SelectItem
-                  key={`future-${6 - i}`}
-                  value={(-(6 - i)).toString()}
-                >
-                  {format(addMonths(new Date(), 6 - i), 'LLLL yyyy', {
-                    locale: ru,
-                  })}
-                </SelectItem>
-              ))}
-              {Array.from({ length: 12 }, (_, i) => (
-                <SelectItem key={`past-${i}`} value={i.toString()}>
-                  {format(subMonths(new Date(), i), 'LLLL yyyy', {
-                    locale: ru,
-                  })}
-                </SelectItem>
-              ))}
+              <SelectItem value="current_month">Текущий месяц</SelectItem>
+              <SelectItem value="last_month">Прошлый месяц</SelectItem>
+              <SelectItem value="quarter">Квартал</SelectItem>
+              <SelectItem value="year">Год</SelectItem>
             </SelectContent>
           </Select>
           <Dialog open={budgetDialogOpen} onOpenChange={setBudgetDialogOpen}>
@@ -496,7 +418,7 @@ const Budgets = () => {
                   Превышено
                 </p>
                 <p className="text-2xl font-bold text-destructive">
-                  {budgetsExceeded}
+                  {exceededCount}
                 </p>
               </div>
               <div className="rounded-lg bg-destructive/10 p-3">
@@ -515,15 +437,15 @@ const Budgets = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {budgetsWithStatus.length === 0 ? (
+                {budgets.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Нет бюджетов. Создайте свой первый бюджет!
                   </div>
                 ) : (
-                  budgetsWithStatus.map((budget) => {
-                    const percentage =
-                      (budget.spent / Number(budget.amount)) * 100;
+                  budgets.map((budget) => {
                     const isExceeded = budget.status === 'exceeded';
+                    const spent = Number(budget.spent);
+                    const amount = Number(budget.amount);
 
                     return (
                       <div
@@ -558,9 +480,7 @@ const Budgets = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                setEditingBudget(budget);
-                              }}
+                              onClick={() => setEditingBudget(budget)}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -577,19 +497,19 @@ const Budgets = () => {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
-                              ₽ {budget.spent.toLocaleString()} из ₽{' '}
-                              {Number(budget.amount).toLocaleString()}
+                              ₽ {spent.toLocaleString()} из ₽{' '}
+                              {amount.toLocaleString()}
                             </span>
                             <span
                               className={`font-semibold ${
                                 isExceeded ? 'text-destructive' : 'text-success'
                               }`}
                             >
-                              {percentage.toFixed(0)}%
+                              {budget.percentage.toFixed(0)}%
                             </span>
                           </div>
                           <Progress
-                            value={Math.min(percentage, 100)}
+                            value={Math.min(budget.percentage, 100)}
                             className={`h-3 ${
                               isExceeded
                                 ? '[&>div]:bg-destructive'
@@ -601,23 +521,19 @@ const Budgets = () => {
                               Осталось:{' '}
                               <span
                                 className={`font-semibold ${
-                                  isExceeded
-                                    ? 'text-destructive'
-                                    : 'text-success'
+                                  isExceeded ? 'text-destructive' : 'text-success'
                                 }`}
                               >
                                 ₽{' '}
                                 {isExceeded
-                                  ? `-${Math.abs(Number(budget.amount) - budget.spent).toLocaleString()}`
-                                  : (
-                                      Number(budget.amount) - budget.spent
-                                    ).toLocaleString()}
+                                  ? `-${Math.abs(Number(budget.remaining)).toLocaleString()}`
+                                  : Number(budget.remaining).toLocaleString()}
                               </span>
                             </span>
                             <span className="text-muted-foreground">
                               {isExceeded
                                 ? 'Перерасход'
-                                : `${(100 - percentage).toFixed(0)}%`}
+                                : `${(100 - budget.percentage).toFixed(0)}%`}
                             </span>
                           </div>
                         </div>
@@ -637,7 +553,7 @@ const Budgets = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {budgetsWithStatus
+                {budgets
                   .filter((b) => b.status === 'exceeded')
                   .map((budget) => (
                     <div
@@ -652,17 +568,14 @@ const Budgets = () => {
                           </p>
                           <p className="text-xs text-muted-foreground">
                             -₽
-                            {Math.abs(
-                              Number(budget.amount) - budget.spent
-                            ).toLocaleString()}{' '}
+                            {Math.abs(Number(budget.remaining)).toLocaleString()}{' '}
                             за период
                           </p>
                         </div>
                       </div>
                     </div>
                   ))}
-                {budgetsWithStatus.filter((b) => b.status === 'exceeded')
-                  .length === 0 && (
+                {budgets.filter((b) => b.status === 'exceeded').length === 0 && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
                     Нет рекомендаций
                   </div>
@@ -673,7 +586,6 @@ const Budgets = () => {
         </div>
       </div>
 
-      {/* Edit Budget Dialog */}
       <Dialog
         open={!!editingBudget}
         onOpenChange={(open) => !open && setEditingBudget(null)}
@@ -686,12 +598,12 @@ const Budgets = () => {
             <BudgetForm
               initialData={{
                 name: editingBudget.name,
-                category_id: editingBudget.category_id,
+                category_id: editingBudget.category?.id || '',
                 amount: editingBudget.amount.toString(),
                 period: editingBudget.period,
-                start_date: editingBudget.start_date,
-                end_date: editingBudget.end_date,
-                alert_threshold: editingBudget.alert_threshold.toString(),
+                start_date: '',
+                end_date: '',
+                alert_threshold: '80',
               }}
               onSubmit={(data) =>
                 updateBudgetMutation.mutate({ id: editingBudget.id, data })
@@ -702,7 +614,6 @@ const Budgets = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Budget Dialog */}
       <AlertDialog
         open={!!deletingBudget}
         onOpenChange={(open) => !open && setDeletingBudget(null)}

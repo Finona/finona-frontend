@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
-  Filter,
   Plus,
   Download,
   ArrowUpRight,
@@ -55,28 +54,42 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
+  enrichedTransactionsService,
   transactionsService,
   accountsService,
   categoriesService,
+  exportService,
 } from '@/lib/api-services';
-import type { Transaction, Account, Category } from '@/lib/api-types';
+import type { EnrichedTransaction } from '@/lib/api-types';
 
 const Transactions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<any>(null);
-  const [deleteTransaction, setDeleteTransaction] = useState<any>(null);
-  const [page, setPage] = useState(0);
+  const [editingTransaction, setEditingTransaction] =
+    useState<EnrichedTransaction | null>(null);
+  const [deleteTransaction, setDeleteTransaction] =
+    useState<EnrichedTransaction | null>(null);
+  const [page, setPage] = useState(1);
   const pageSize = 20;
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => transactionsService.getAll(),
+  const { data: transactionsData, isLoading } = useQuery({
+    queryKey: ['transactions-enriched', searchQuery, typeFilter, categoryFilter, page],
+    queryFn: () =>
+      enrichedTransactionsService.getAll({
+        search: searchQuery || undefined,
+        type:
+          typeFilter !== 'all'
+            ? (typeFilter as 'expense' | 'income' | 'transfer')
+            : undefined,
+        category_id: categoryFilter !== 'all' ? categoryFilter : undefined,
+        page,
+        per_page: pageSize,
+      }),
   });
 
   const { data: accounts = [] } = useQuery({
@@ -89,42 +102,13 @@ const Transactions = () => {
     queryFn: () => categoriesService.getAll(),
   });
 
-  const transactionsWithData = useMemo(() => {
-    return transactions.map((t) => ({
-      ...t,
-      account: accounts.find((a) => a.id === t.account_id),
-      category: categories.find((c) => c.id === t.category_id),
-    }));
-  }, [transactions, accounts, categories]);
-
-  const filteredTransactions = useMemo(() => {
-    return transactionsWithData.filter((t) => {
-      const matchesSearch =
-        searchQuery === '' ||
-        t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.counterparty?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.category?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesType =
-        typeFilter === 'all' || t.type.toLowerCase() === typeFilter;
-
-      const matchesCategory =
-        categoryFilter === 'all' || t.category_id === categoryFilter;
-
-      return matchesSearch && matchesType && matchesCategory;
-    });
-  }, [transactionsWithData, searchQuery, typeFilter, categoryFilter]);
-
-  // Пагинация
-  const paginatedTransactions = useMemo(() => {
-    const start = page * pageSize;
-    return filteredTransactions.slice(start, start + pageSize);
-  }, [filteredTransactions, page]);
+  const transactions = transactionsData?.items || [];
+  const totalItems = transactionsData?.total || 0;
 
   const createMutation = useMutation({
     mutationFn: (data: any) => transactionsService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-enriched'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setIsAddOpen(false);
       toast({
@@ -144,7 +128,7 @@ const Transactions = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: any) => transactionsService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-enriched'] });
       setEditingTransaction(null);
       toast({
         title: 'Транзакция обновлена',
@@ -162,7 +146,7 @@ const Transactions = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => transactionsService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-enriched'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setDeleteTransaction(null);
       toast({
@@ -178,9 +162,8 @@ const Transactions = () => {
     },
   });
 
-  // Экспорт в CSV
-  const handleExport = () => {
-    if (!filteredTransactions.length) {
+  const handleExport = async () => {
+    if (!totalItems) {
       toast({
         variant: 'destructive',
         title: 'Нет данных',
@@ -189,38 +172,38 @@ const Transactions = () => {
       return;
     }
 
-    const csv = [
-      ['Дата', 'Описание', 'Категория', 'Счёт', 'Тип', 'Сумма'].join(','),
-      ...filteredTransactions.map((t) =>
-        [
-          format(new Date(t.date), 'dd.MM.yyyy'),
-          t.description || t.counterparty || '-',
-          t.category?.name || '-',
-          t.account?.name || '-',
-          t.type.toUpperCase() === 'INCOME' ? 'Доход' : 'Расход',
-          t.amount,
-        ].join(',')
-      ),
-    ].join('\n');
+    try {
+      const blob = await exportService.csv('transactions');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `транзакции_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.click();
 
-    const blob = new Blob(['\ufeff' + csv], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `транзакции_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    link.click();
-
-    toast({
-      title: 'Экспорт завершён',
-      description: `Экспортировано ${filteredTransactions.length} транзакций`,
-    });
+      toast({
+        title: 'Экспорт завершён',
+        description: `Экспортировано транзакций`,
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Ошибка',
+        description: 'Не удалось экспортировать данные',
+      });
+    }
   };
 
-  const TransactionForm = ({ transaction, onSubmit, onClose }: any) => {
+  const TransactionForm = ({
+    transaction,
+    onSubmit,
+    onClose,
+  }: {
+    transaction?: EnrichedTransaction | null;
+    onSubmit: (data: any) => void;
+    onClose: () => void;
+  }) => {
     const [formData, setFormData] = useState({
-      account_id: transaction?.account_id || '',
-      category_id: transaction?.category_id || '',
+      account_id: transaction?.account?.id || '',
+      category_id: transaction?.category?.id || '',
       amount: transaction?.amount || '',
       type: transaction?.type?.toLowerCase() || 'expense',
       description: transaction?.description || '',
@@ -337,7 +320,7 @@ const Transactions = () => {
             </SelectTrigger>
             <SelectContent>
               {categories
-                ?.filter((c) => c.type === formData.type)
+                ?.filter((c) => c.type.toLowerCase() === formData.type)
                 .map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -414,9 +397,7 @@ const Transactions = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Транзакции</h1>
-          <p className="text-muted-foreground">
-            Всего: {filteredTransactions.length} транзакций
-          </p>
+          <p className="text-muted-foreground">Всего: {totalItems} транзакций</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport}>
@@ -453,7 +434,10 @@ const Transactions = () => {
             <Input
               placeholder="Поиск по описанию, контрагенту, категории..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
               className="pl-10"
             />
           </div>
@@ -461,7 +445,7 @@ const Transactions = () => {
             value={typeFilter}
             onValueChange={(value) => {
               setTypeFilter(value);
-              setPage(0);
+              setPage(1);
             }}
           >
             <SelectTrigger className="w-[180px]">
@@ -478,7 +462,7 @@ const Transactions = () => {
             value={categoryFilter}
             onValueChange={(value) => {
               setCategoryFilter(value);
-              setPage(0);
+              setPage(1);
             }}
           >
             <SelectTrigger className="w-[180px]">
@@ -493,9 +477,7 @@ const Transactions = () => {
               ))}
             </SelectContent>
           </Select>
-          {(typeFilter !== 'all' ||
-            categoryFilter !== 'all' ||
-            searchQuery) && (
+          {(typeFilter !== 'all' || categoryFilter !== 'all' || searchQuery) && (
             <Button
               variant="ghost"
               size="icon"
@@ -503,6 +485,7 @@ const Transactions = () => {
                 setTypeFilter('all');
                 setCategoryFilter('all');
                 setSearchQuery('');
+                setPage(1);
               }}
             >
               <X className="h-4 w-4" />
@@ -510,7 +493,7 @@ const Transactions = () => {
           )}
         </div>
 
-        {paginatedTransactions.length > 0 ? (
+        {transactions.length > 0 ? (
           <>
             <div className="rounded-lg border border-border overflow-x-auto">
               <Table>
@@ -525,7 +508,7 @@ const Transactions = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedTransactions.map((transaction) => (
+                  {transactions.map((transaction) => (
                     <TableRow key={transaction.id}>
                       <TableCell className="font-medium whitespace-nowrap">
                         {format(new Date(transaction.date), 'dd MMM', {
@@ -536,12 +519,12 @@ const Transactions = () => {
                         <div className="flex items-center gap-2">
                           <div
                             className={`rounded-lg p-2 ${
-                              transaction.type.toUpperCase() === 'INCOME'
+                              transaction.type === 'INCOME'
                                 ? 'bg-success/10'
                                 : 'bg-muted'
                             }`}
                           >
-                            {transaction.type.toUpperCase() === 'INCOME' ? (
+                            {transaction.type === 'INCOME' ? (
                               <ArrowUpRight className="h-4 w-4 text-success" />
                             ) : (
                               <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
@@ -571,15 +554,13 @@ const Transactions = () => {
                       </TableCell>
                       <TableCell
                         className={`text-right font-semibold whitespace-nowrap ${
-                          transaction.type.toUpperCase() === 'INCOME'
+                          transaction.type === 'INCOME'
                             ? 'text-success'
                             : 'text-foreground'
                         }`}
                       >
-                        {transaction.type.toUpperCase() === 'INCOME'
-                          ? '+'
-                          : '-'}
-                        ₽{Number(transaction.amount).toLocaleString()}
+                        {transaction.type === 'INCOME' ? '+' : '-'}₽
+                        {Number(transaction.amount).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -607,16 +588,15 @@ const Transactions = () => {
 
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
               <p>
-                Показано {page * pageSize + 1}-
-                {Math.min((page + 1) * pageSize, filteredTransactions.length)}{' '}
-                из {filteredTransactions.length}
+                Показано {(page - 1) * pageSize + 1}-
+                {Math.min(page * pageSize, totalItems)} из {totalItems}
               </p>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(page - 1)}
-                  disabled={page === 0}
+                  disabled={page === 1}
                 >
                   Назад
                 </Button>
@@ -624,9 +604,7 @@ const Transactions = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(page + 1)}
-                  disabled={
-                    (page + 1) * pageSize >= filteredTransactions.length
-                  }
+                  disabled={page * pageSize >= totalItems}
                 >
                   Далее
                 </Button>
@@ -636,7 +614,7 @@ const Transactions = () => {
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">
-              {transactions && transactions.length > 0
+              {totalItems > 0
                 ? 'Нет транзакций по заданным фильтрам'
                 : 'У вас пока нет транзакций'}
             </p>
@@ -648,7 +626,6 @@ const Transactions = () => {
         )}
       </Card>
 
-      {/* Диалог редактирования */}
       <Dialog
         open={!!editingTransaction}
         onOpenChange={() => setEditingTransaction(null)}
@@ -656,9 +633,7 @@ const Transactions = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать транзакцию</DialogTitle>
-            <DialogDescription>
-              Внесите изменения в транзакцию
-            </DialogDescription>
+            <DialogDescription>Внесите изменения в транзакцию</DialogDescription>
           </DialogHeader>
           {editingTransaction && (
             <TransactionForm
@@ -672,7 +647,6 @@ const Transactions = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Диалог удаления */}
       <AlertDialog
         open={!!deleteTransaction}
         onOpenChange={() => setDeleteTransaction(null)}
@@ -687,7 +661,9 @@ const Transactions = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deleteTransaction.id)}
+              onClick={() =>
+                deleteTransaction && deleteMutation.mutate(deleteTransaction.id)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить

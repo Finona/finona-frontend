@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -10,21 +10,12 @@ import {
   ArrowDownRight,
   Edit,
   Trash2,
-  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -51,13 +42,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { accountsService, transactionsService } from '@/lib/api-services';
-import type {
-  Account,
-  Transaction,
-  AccountCreate,
-  AccountUpdate,
-} from '@/lib/api-types';
+import { accountsService, accountsWithStatsService } from '@/lib/api-services';
+import type { Account, AccountCreate, AccountUpdate } from '@/lib/api-types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -85,49 +71,19 @@ const Accounts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: accounts, isLoading } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: () => accountsService.getAll(),
+  const { data: accountsData, isLoading } = useQuery({
+    queryKey: ['accounts-with-stats'],
+    queryFn: () => accountsWithStatsService.get(),
   });
 
-  const { data: recentTransactions } = useQuery({
-    queryKey: ['recent-transactions'],
-    queryFn: async () => {
-      const transactions = await transactionsService.getAll();
-      return transactions
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 5);
-    },
-  });
-
-  // Статистика
-  const stats = useMemo(() => {
-    if (!accounts) return { total: 0, active: 0, lastSync: null };
-
-    const activeAccounts = accounts.filter((a) => a.is_active);
-    const totalBalance = activeAccounts.reduce(
-      (sum, acc) => sum + Number(acc.balance),
-      0
-    );
-    const lastSync = activeAccounts
-      .filter((a) => a.last_synced_at)
-      .sort(
-        (a, b) =>
-          new Date(b.last_synced_at!).getTime() -
-          new Date(a.last_synced_at!).getTime()
-      )[0]?.last_synced_at;
-
-    return {
-      total: totalBalance,
-      active: activeAccounts.length,
-      lastSync,
-    };
-  }, [accounts]);
+  const accounts = accountsData?.accounts || [];
+  const stats = accountsData?.stats;
+  const recentTransactions = accountsData?.recent_transactions || [];
 
   const createMutation = useMutation({
     mutationFn: (data: AccountCreate) => accountsService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-with-stats'] });
       setIsAddOpen(false);
       toast({
         title: 'Счёт создан',
@@ -147,7 +103,7 @@ const Accounts = () => {
     mutationFn: ({ id, data }: { id: string; data: AccountUpdate }) =>
       accountsService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-with-stats'] });
       setEditingAccount(null);
       toast({
         title: 'Счёт обновлён',
@@ -167,7 +123,7 @@ const Accounts = () => {
       await accountsService.delete(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-with-stats'] });
       setDeleteAccount(null);
       toast({
         title: 'Счёт удалён',
@@ -352,7 +308,10 @@ const Accounts = () => {
     );
   }
 
-  const activeAccounts = accounts?.filter((a) => a.is_active) || [];
+  const activeAccounts = accounts.filter((a) => a.is_active);
+  const totalBalance = Number(stats?.total_balance || 0);
+  const activeCount = stats?.active_count || 0;
+  const lastSync = stats?.last_sync;
 
   return (
     <div className="space-y-6">
@@ -360,7 +319,7 @@ const Accounts = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Счета</h1>
           <p className="text-muted-foreground">
-            Всего: {accounts?.length || 0} счетов
+            Всего: {accounts.length} счетов
           </p>
         </div>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -393,10 +352,10 @@ const Accounts = () => {
                 Общий баланс
               </p>
               <p className="text-3xl font-bold text-primary-foreground">
-                ₽ {stats.total.toLocaleString()}
+                ₽ {totalBalance.toLocaleString()}
               </p>
               <p className="text-sm text-primary-foreground/90">
-                на {activeAccounts.length} счетах
+                на {activeCount} счетах
               </p>
             </div>
           </CardContent>
@@ -408,11 +367,9 @@ const Accounts = () => {
               <p className="text-sm font-medium text-muted-foreground">
                 Активных счетов
               </p>
-              <p className="text-3xl font-bold text-foreground">
-                {activeAccounts.length}
-              </p>
+              <p className="text-3xl font-bold text-foreground">{activeCount}</p>
               <p className="text-sm text-muted-foreground">
-                из {accounts?.length || 0} всего
+                из {accounts.length} всего
               </p>
             </div>
           </CardContent>
@@ -424,13 +381,13 @@ const Accounts = () => {
               <p className="text-sm font-medium text-muted-foreground">
                 Последняя синхронизация
               </p>
-              {stats.lastSync ? (
+              {lastSync ? (
                 <>
                   <p className="text-3xl font-bold text-foreground">
-                    {format(new Date(stats.lastSync), 'HH:mm')}
+                    {format(new Date(lastSync), 'HH:mm')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(stats.lastSync), 'dd MMMM yyyy', {
+                    {format(new Date(lastSync), 'dd MMMM yyyy', {
                       locale: ru,
                     })}
                   </p>
@@ -451,10 +408,7 @@ const Accounts = () => {
                 account.type.toLowerCase() as keyof typeof accountTypeIcons;
               const Icon = accountTypeIcons[typeKey];
               return (
-                <Card
-                  key={account.id}
-                  className="transition-all hover:shadow-md"
-                >
+                <Card key={account.id} className="transition-all hover:shadow-md">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start gap-4">
@@ -540,7 +494,7 @@ const Accounts = () => {
             <CardTitle>Последние операции</CardTitle>
           </CardHeader>
           <CardContent>
-            {recentTransactions && recentTransactions.length > 0 ? (
+            {recentTransactions.length > 0 ? (
               <div className="space-y-4">
                 {recentTransactions.map((transaction) => (
                   <div
@@ -550,12 +504,12 @@ const Accounts = () => {
                     <div className="flex items-center gap-3">
                       <div
                         className={`rounded-lg p-2 ${
-                          transaction.type === 'income'
+                          transaction.type === 'INCOME'
                             ? 'bg-success/10'
                             : 'bg-muted'
                         }`}
                       >
-                        {transaction.type === 'income' ? (
+                        {transaction.type === 'INCOME' ? (
                           <ArrowUpRight className="h-4 w-4 text-success" />
                         ) : (
                           <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
@@ -563,12 +517,9 @@ const Accounts = () => {
                       </div>
                       <div>
                         <p className="font-medium">
-                          {transaction.description ||
-                            transaction.counterparty ||
-                            'Без описания'}
+                          {transaction.description || 'Без описания'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {transaction.account?.name} •{' '}
                           {format(new Date(transaction.date), 'dd MMM', {
                             locale: ru,
                           })}
@@ -577,12 +528,12 @@ const Accounts = () => {
                     </div>
                     <p
                       className={`font-semibold ${
-                        transaction.type === 'income'
+                        transaction.type === 'INCOME'
                           ? 'text-success'
                           : 'text-foreground'
                       }`}
                     >
-                      {transaction.type === 'income' ? '+' : '-'}₽
+                      {transaction.type === 'INCOME' ? '+' : '-'}₽
                       {Number(transaction.amount).toLocaleString()}
                     </p>
                   </div>
@@ -597,7 +548,6 @@ const Accounts = () => {
         </Card>
       </div>
 
-      {/* Диалог редактирования */}
       <Dialog
         open={!!editingAccount}
         onOpenChange={() => setEditingAccount(null)}
@@ -619,7 +569,6 @@ const Accounts = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Диалог удаления */}
       <AlertDialog
         open={!!deleteAccount}
         onOpenChange={() => setDeleteAccount(null)}
@@ -635,7 +584,9 @@ const Accounts = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteMutation.mutate(deleteAccount.id)}
+              onClick={() =>
+                deleteAccount && deleteMutation.mutate(deleteAccount.id)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Удалить

@@ -46,6 +46,7 @@ jobs:
           port: ${{ secrets.SSH_DEPLOY_PORT }}
           script: |
             cd ${{ secrets.COMPOSE_FOLDER }}
+            docker rm -f finona-frontend || true
             docker compose down nginx --rmi local
             docker compose up nginx -d --build
 

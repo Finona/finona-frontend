@@ -17,12 +17,6 @@ services:
       - nginx_logs:/var/log/nginx
     environment:
       - NODE_ENV=production
-    networks:
-      - frontend-network
 
 volumes:
   nginx_logs:
-
-networks:
-  frontend-network:
-    driver: bridge

@@ -20,6 +20,8 @@ import type {
   RegisterRequest,
   AuthResponse,
   User,
+  AdminUser,
+  AdminUserListResponse,
   DashboardSummary,
   EnrichedTransactionsResponse,
   AccountsWithStatsResponse,
@@ -174,6 +176,16 @@ export const reportsService = {
       `/reports/analytics${queryString ? `?${queryString}` : ''}`
     );
   },
+};
+
+export const adminService = {
+  getUsers: () => apiClient.get<AdminUserListResponse>('/admin/users'),
+
+  deactivateUser: (userId: number) =>
+    apiClient.patch<AdminUser>(`/admin/users/${userId}/deactivate`, {}),
+
+  activateUser: (userId: number) =>
+    apiClient.patch<AdminUser>(`/admin/users/${userId}/activate`, {}),
 };
 
 export const exportService = {

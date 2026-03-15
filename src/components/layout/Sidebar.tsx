@@ -6,9 +6,11 @@ import {
   Tag,
   Settings,
   FileText,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Дашборд', path: '/' },
@@ -21,10 +23,17 @@ const navItems = [
 ];
 
 export const Sidebar = () => {
+  const { user } = useAuth();
+
+  const items =
+    user?.role === 'ADMIN'
+      ? [...navItems, { icon: Shield, label: 'Админ-панель', path: '/admin' }]
+      : navItems;
+
   return (
     <aside className="fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r border-border bg-card">
       <nav className="flex h-full flex-col gap-1 p-4">
-        {navItems.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}

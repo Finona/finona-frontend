@@ -221,6 +221,25 @@ export interface User {
   region: string;
   profile_photo: string | null;
   is_active: boolean;
+  role: 'USER' | 'ADMIN';
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  birth_date: string;
+  created_at: string;
+  region: string;
+  is_active: boolean;
+  role: string;
+}
+
+export interface AdminUserListResponse {
+  users: AdminUser[];
+  total: number;
 }
 
 export interface CashFlowItem {

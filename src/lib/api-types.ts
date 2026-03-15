@@ -73,6 +73,11 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface AvatarUploadResponse {
+  upload_url: string;
+  key: string;
+}
+
 export interface UserSettings {
   id?: string;
   profile_id?: string;

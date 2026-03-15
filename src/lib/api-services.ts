@@ -15,6 +15,7 @@ import type {
   Profile,
   UserSettings,
   UserSettingsUpdate,
+  AvatarUploadResponse,
   Notification,
   LoginRequest,
   RegisterRequest,
@@ -109,6 +110,11 @@ export const profilesService = {
 
   update: (data: Partial<Profile>) =>
     apiClient.patch<Profile>('/profiles/me', data),
+
+  presignAvatar: (contentType: string = 'image/jpeg') =>
+    apiClient.post<AvatarUploadResponse>(
+      `/profiles/me/avatar/presign?content_type=${encodeURIComponent(contentType)}`
+    ),
 
   getSettings: () => apiClient.get<UserSettings>('/profiles/settings'),
 

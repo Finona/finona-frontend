@@ -1,4 +1,4 @@
-import { Save, User, Bell, Lock, CreditCard, Database } from 'lucide-react';
+import { Save, User, Bell, Lock, CreditCard, Database, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -32,7 +32,8 @@ import {
   authService,
 } from '@/lib/api-services';
 import { useAuth } from '@/hooks/useAuth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -44,6 +45,8 @@ const Settings = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const [fullName, setFullName] = useState('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -101,6 +104,58 @@ const Settings = () => {
       });
     },
   });
+
+  const uploadAvatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const { upload_url, key } = await profilesService.presignAvatar(file.type);
+      await fetch(upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      await profilesService.update({ avatar_url: key });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast({ title: 'Аватар обновлён' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Ошибка загрузки аватара',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      if (img.width !== img.height) {
+        toast({
+          title: 'Ошибка',
+          description: 'Фото должно быть квадратным',
+          variant: 'destructive',
+        });
+        return;
+      }
+      uploadAvatarMutation.mutate(file);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось прочитать изображение',
+        variant: 'destructive',
+      });
+    };
+    img.src = URL.createObjectURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const updateSettingsMutation = useMutation({
     mutationFn: async () => {
@@ -241,6 +296,40 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="flex items-center gap-6">
+                <div className="relative group">
+                  <Avatar className="h-20 w-20">
+                    {profile?.avatar_url && (
+                      <AvatarImage src={profile.avatar_url} alt="Аватар" />
+                    )}
+                    <AvatarFallback className="text-2xl">
+                      {fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadAvatarMutation.isPending}
+                    className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    <Camera className="h-5 w-5 text-white" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Фото профиля</p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG или WebP. Фото должно быть квадратным.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="fullName">Полное имя</Label>
                 <Input

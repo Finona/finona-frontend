@@ -6,12 +6,13 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: () => adminService.getUsers(),
+    enabled: user?.role === 'ADMIN',
   });
 
   const deactivate = useMutation({
@@ -32,16 +33,16 @@ const Admin = () => {
     onError: () => toast.error('Ошибка активации'),
   });
 
-  if (user?.role !== 'ADMIN') {
-    return <Navigate to="/" replace />;
-  }
-
-  if (isLoading) {
+  if (loading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
+  }
+
+  if (user?.role !== 'ADMIN') {
+    return <Navigate to="/" replace />;
   }
 
   const users = data?.users ?? [];

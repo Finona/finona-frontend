@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
 import { adminService } from '@/lib/api-services';
 import { Shield, UserX, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,7 +50,8 @@ const Admin = () => {
   const users = data?.users ?? [];
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6">
+      <SEO title="Администрирование" description="Управление пользователями системы" path="/admin" />
       <div className="flex items-center gap-3">
         <Shield className="h-8 w-8 text-primary" />
         <div>
@@ -138,7 +141,7 @@ const Admin = () => {
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 };
 

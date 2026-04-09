@@ -1,3 +1,5 @@
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
 import { Save, User, Bell, Lock, CreditCard, Database, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -268,7 +270,8 @@ const Settings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6">
+      <SEO title="Настройки" description="Настройки профиля и приложения" path="/settings" />
       <div>
         <h1 className="text-3xl font-bold text-foreground">Настройки</h1>
         <p className="text-muted-foreground">
@@ -652,7 +655,7 @@ const Settings = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   );
 };
 

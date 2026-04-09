@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
 import {
   Download,
   TrendingUp,
@@ -160,7 +162,8 @@ const Reports = () => {
   const profitMargin = income > 0 ? (balance / income) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6">
+      <SEO title="Отчёты" description="Аналитика и отчёты по финансам" path="/reports" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Отчёты</h1>
@@ -529,7 +532,7 @@ const Reports = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </section>
   );
 };
 

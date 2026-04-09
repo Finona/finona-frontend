@@ -36,6 +36,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
+import ExchangeRates from '@/components/ExchangeRates'; // Лаба 4
 
 const CHART_COLORS = [
   'hsl(var(--accent))',
@@ -111,11 +114,16 @@ const Dashboard = () => {
   const activeAccountsCount = summary?.active_accounts_count || 0;
 
   return (
-    <div className="space-y-6">
-      <div>
+    <article className="space-y-6">
+      <SEO
+        title="Дашборд"
+        description="Обзор финансов: баланс, доходы, расходы, бюджеты и аналитика"
+        path="/"
+      />
+      <header>
         <h1 className="text-3xl font-bold text-foreground">Дашборд</h1>
         <p className="text-muted-foreground">Обзор ваших финансов</p>
-      </div>
+      </header>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
@@ -286,8 +294,9 @@ const Dashboard = () => {
         </ResponsiveContainer>
       </ChartCard>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="p-6">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <ExchangeRates />
+        <Card className="p-6 lg:col-span-2">
           <h3 className="mb-4 text-lg font-semibold">Последние транзакции</h3>
           <div className="space-y-4">
             {summary?.expenses_by_category &&
@@ -371,7 +380,7 @@ const Dashboard = () => {
           </Button>
         </Card>
       </div>
-    </div>
+    </article>
   );
 };
 

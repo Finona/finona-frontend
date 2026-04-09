@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
 import { authService } from '@/lib/api-services';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,7 +94,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
+      <SEO title="Вход в систему" description="Авторизация в приложении Finona для учёта личных финансов" path="/auth" />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -229,6 +232,6 @@ export default function Auth() {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

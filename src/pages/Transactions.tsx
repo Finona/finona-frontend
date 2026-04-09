@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
 import {
   Search,
   Plus,
@@ -393,7 +395,8 @@ const Transactions = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6">
+      <SEO title="Транзакции" description="Управление транзакциями: доходы, расходы и переводы" path="/transactions" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Транзакции</h1>
@@ -671,7 +674,7 @@ const Transactions = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   );
 };
 

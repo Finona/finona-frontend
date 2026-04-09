@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
 import {
   Plus,
   Edit,
@@ -249,7 +251,8 @@ const Categories = () => {
   const totalExpenses = Number(summary?.total_expenses || 0);
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6">
+      <SEO title="Категории" description="Категории расходов и доходов для группировки транзакций" path="/categories" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Категории</h1>
@@ -516,7 +519,7 @@ const Categories = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   );
 };
 

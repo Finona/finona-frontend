@@ -1,4 +1,6 @@
 import { useState } from 'react';
+// Лаба 4 - SEO
+import SEO from '@/components/SEO'; // Лаба 4
 import {
   Plus,
   Target,
@@ -315,7 +317,8 @@ const Budgets = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6">
+      <SEO title="Бюджеты" description="Планирование и контроль бюджетов по категориям" path="/budgets" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Бюджеты</h1>
@@ -637,7 +640,7 @@ const Budgets = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   );
 };
 

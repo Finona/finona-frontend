@@ -202,3 +202,33 @@ export const exportService = {
 
   json: () => apiClient.get<Blob>('/export/json', { responseType: 'blob' } as any),
 };
+
+// Лаба 4 - Интеграция стороннего API (курсы валют ЦБ РФ)
+export const exchangeRatesService = {
+  getAll: () =>
+    apiClient.get<{
+      date: string;
+      base: string;
+      fetched_at: string;
+      currencies: Array<{
+        char_code: string;
+        nominal: number;
+        name: string;
+        value: number;
+        rate: number;
+      }>;
+    }>('/exchange-rates/'),
+
+  getByCode: (charCode: string) =>
+    apiClient.get<{
+      date: string;
+      base: string;
+      currency: {
+        char_code: string;
+        nominal: number;
+        name: string;
+        value: number;
+        rate: number;
+      };
+    }>(`/exchange-rates/${charCode}`),
+};
